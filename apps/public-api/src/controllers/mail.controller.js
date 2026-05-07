@@ -1,13 +1,11 @@
-const { Resend } = require("resend");
 const { z } = require("zod");
-const { Project, MailTemplate, decrypt, redis, sendMailSchema } = require("@urbackend/common");
+const { Project, MailTemplate, decrypt, redis, sendMailSchema, publicEmailQueue } = require("@urbackend/common");
 const {
   getMonthKey,
   getEndOfMonthTtlSeconds,
   getMonthlyMailLimit,
 } = require("../utils/mailLimit");
 
-const DEFAULT_FROM = process.env.EMAIL_FROM || "urBackend <urbackend@apps.bitbros.in>";
 
 const getMailCountKey = (projectId, monthKey) =>
   `project:mail:count:${projectId}:${monthKey}`;
@@ -300,38 +298,30 @@ module.exports.sendMail = async (req, res) => {
     const { count, key } = await reserveMonthlyMailSlot(projectId, limit);
     consumedQuotaKey = key;
 
-    const resend = new Resend(clientKey);
-    
-    let fromAddress = DEFAULT_FROM;
-    if (usingByok) {
-      fromAddress = project.resendFromEmail && project.resendFromEmail.trim() 
-        ? project.resendFromEmail.trim() 
-        : "onboarding@resend.dev";
-    }
-
     const payload = {
-      from: fromAddress,
       to,
       subject: resolvedSubject,
     };
     if (typeof resolvedHtml === "string" && resolvedHtml.trim()) payload.html = resolvedHtml;
     if (typeof resolvedText === "string" && resolvedText.trim()) payload.text = resolvedText;
 
-    const { data, error } = await resend.emails.send(payload);
-    if (error) {
-      throw new Error(error.message || "Failed to send mail.");
-    }
+    const job = await publicEmailQueue.add("send-public-email", {
+      projectId,
+      payload,
+      usingByok,
+      consumedQuotaKey
+    });
 
     return res.status(200).json({
       success: true,
       data: {
-        id: data?.id || null,
+        id: job.id ? String(job.id) : null,
         provider: usingByok ? "byok" : "default",
         monthlyUsage: count,
         monthlyLimit: limit,
         ...(templateUsed ? { templateUsed } : {}),
       },
-      message: "Mail sent successfully.",
+      message: "Mail queued successfully.",
     });
   } catch (err) {
     if (consumedQuotaKey) {

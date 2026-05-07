@@ -3,15 +3,7 @@
 process.env.REDIS_URL = process.env.REDIS_URL || "redis://localhost:6379/0";
 process.env.ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || "0123456789012345678901234567890a";
 
-jest.mock('resend', () => {
-    const sendMock = jest.fn(() => Promise.resolve({ data: { id: 'mail-123' }, error: null }));
-    return {
-        Resend: jest.fn(() => ({
-            emails: { send: sendMock },
-        })),
-        __sendMock: sendMock,
-    };
-});
+// Removed resend mock because mail.controller no longer imports it
 
 jest.mock('@urbackend/common', () => {
     const { sendMailSchema } = require('../../../../packages/common/src/utils/input.validation');
@@ -34,11 +26,13 @@ jest.mock('@urbackend/common', () => {
         decrypt: jest.fn(),
         redis: redisMock,
         getPlanLimits: jest.fn(() => ({ mailPerMonth: 100 })),
+        publicEmailQueue: {
+            add: jest.fn(() => Promise.resolve({ id: 'job-123' }))
+        }
     };
 });
 
-const { Resend, __sendMock } = require('resend');
-const { Project, decrypt, redis } = require('@urbackend/common');
+const { Project, decrypt, redis, publicEmailQueue } = require('@urbackend/common');
 const mailController = require('../controllers/mail.controller');
 
 const makeReq = () => ({
@@ -156,10 +150,80 @@ describe('mail.controller', () => {
                 templateUsed: expect.objectContaining({ name: 'welcome', id: 'tpl_1', scope: 'project' }),
             }),
         }));
-        expect(__sendMock).toHaveBeenCalledWith(expect.objectContaining({
-            subject: 'Hello Yash',
-            text: 'Welcome, Yash!',
-            html: '<p>Welcome, Yash!</p>',
+        expect(publicEmailQueue.add).toHaveBeenCalledWith("send-public-email", expect.objectContaining({
+            payload: expect.objectContaining({
+                subject: 'Hello Yash',
+                text: 'Welcome, Yash!',
+                html: '<p>Welcome, Yash!</p>',
+            })
         }));
+    });
+
+    test('refunds quota on terminal async worker failure', async () => {
+        let failedHandler;
+        jest.resetModules();
+        jest.doMock('bullmq', () => ({
+            Queue: jest.fn(),
+            Worker: jest.fn(() => ({
+                on: jest.fn((event, handler) => {
+                    if (event === 'failed') failedHandler = handler;
+                }),
+                removeAllListeners: jest.fn(),
+                close: jest.fn()
+            }))
+        }));
+
+        const mockRedis = { decr: jest.fn().mockResolvedValue(1) };
+        jest.doMock('../../../../packages/common/src/config/redis', () => mockRedis);
+
+        const { initPublicEmailWorker } = require('../../../../packages/common/src/queues/publicEmailQueue');
+        const worker = initPublicEmailWorker();
+        
+        const mockJob = {
+            id: 'job-999',
+            data: { consumedQuotaKey: 'project:mail:count:proj_1:2026-05' },
+            opts: { attempts: 3 },
+            attemptsMade: 3
+        };
+
+        if (failedHandler) {
+            await failedHandler(mockJob, new Error("Terminal failure"));
+        }
+
+        expect(mockRedis.decr).toHaveBeenCalledWith('project:mail:count:proj_1:2026-05');
+    });
+
+    test('does not refund quota on non-terminal async worker failure', async () => {
+        let failedHandler;
+        jest.resetModules();
+        jest.doMock('bullmq', () => ({
+            Queue: jest.fn(),
+            Worker: jest.fn(() => ({
+                on: jest.fn((event, handler) => {
+                    if (event === 'failed') failedHandler = handler;
+                }),
+                removeAllListeners: jest.fn(),
+                close: jest.fn()
+            }))
+        }));
+
+        const mockRedis = { decr: jest.fn().mockResolvedValue(1) };
+        jest.doMock('../../../../packages/common/src/config/redis', () => mockRedis);
+
+        const { initPublicEmailWorker } = require('../../../../packages/common/src/queues/publicEmailQueue');
+        const worker = initPublicEmailWorker();
+        
+        const mockJob = {
+            id: 'job-888',
+            data: { consumedQuotaKey: 'project:mail:count:proj_1:2026-05' },
+            opts: { attempts: 3 },
+            attemptsMade: 1 // Not terminal yet
+        };
+
+        if (failedHandler) {
+            await failedHandler(mockJob, new Error("Temporary failure"));
+        }
+
+        expect(mockRedis.decr).not.toHaveBeenCalled();
     });
 });

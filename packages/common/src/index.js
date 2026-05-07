@@ -27,6 +27,7 @@ const ApiAnalytics = require("./models/ApiAnalytics");
 
 // Queues
 const { authEmailQueue, initAuthEmailWorker } = require("./queues/authEmailQueue");
+const { publicEmailQueue, initPublicEmailWorker } = require("./queues/publicEmailQueue");
 const { emailQueue } = require("./queues/emailQueue");
 const {
   webhookQueue,
@@ -170,6 +171,8 @@ module.exports = {
   validateUpdateData,
   userSignupSchema,
   initAuthEmailWorker,
+  publicEmailQueue,
+  initPublicEmailWorker,
   ...sessionManager,
   ...planLimits,
   AppError,
