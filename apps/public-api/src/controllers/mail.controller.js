@@ -310,6 +310,9 @@ module.exports.sendMail = async (req, res) => {
       payload,
       usingByok,
       consumedQuotaKey
+    }, {
+      attempts: 3,
+      backoff: { type: 'exponential', delay: 5000 }
     });
 
     return res.status(200).json({

@@ -50,12 +50,16 @@ const initPublicEmailWorker = () => {
             from: fromAddress
         };
 
-        console.log(`[Queue] Processing public email to: ${finalPayload.to}`);
+        const redact = (e) => e.replace(/(.{2})(.*)(?=@)/, (_, keep, mask) => keep + '*'.repeat(mask.length));
+        const toList = Array.isArray(finalPayload.to) ? finalPayload.to : [finalPayload.to];
+        const maskedTo = toList.map(redact).join(', ');
+
+        console.log(`[Queue] Processing public email to: ${maskedTo}`);
         
         const { data, error } = await resend.emails.send(finalPayload);
         
         if (error) {
-            console.error(`[Queue] Failed to send public email to ${finalPayload.to}:`, error);
+            console.error(`[Queue] Failed to send public email to ${maskedTo}:`, error);
             throw new Error(error.message || "Failed to send email");
         }
         
@@ -80,7 +84,8 @@ const initPublicEmailWorker = () => {
         if (job && job.data && job.data.consumedQuotaKey) {
             const maxAttempts = job.opts?.attempts || 1;
             if (job.attemptsMade >= maxAttempts) {
-                await connection.decr(job.data.consumedQuotaKey).catch(() => {});
+                const luaScript = `if redis.call('EXISTS', KEYS[1]) == 1 then return redis.call('DECR', KEYS[1]) else return 0 end`;
+                await connection.eval(luaScript, 1, job.data.consumedQuotaKey).catch(() => {});
             }
         }
     });

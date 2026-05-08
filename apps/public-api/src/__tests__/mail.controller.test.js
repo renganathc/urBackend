@@ -156,7 +156,7 @@ describe('mail.controller', () => {
                 text: 'Welcome, Yash!',
                 html: '<p>Welcome, Yash!</p>',
             })
-        }));
+        }), expect.objectContaining({ attempts: expect.any(Number) }));
     });
 
     test('refunds quota on terminal async worker failure', async () => {
@@ -173,7 +173,7 @@ describe('mail.controller', () => {
             }))
         }));
 
-        const mockRedis = { decr: jest.fn().mockResolvedValue(1) };
+        const mockRedis = { eval: jest.fn().mockResolvedValue(0) };
         jest.doMock('../../../../packages/common/src/config/redis', () => mockRedis);
 
         const { initPublicEmailWorker } = require('../../../../packages/common/src/queues/publicEmailQueue');
@@ -190,7 +190,9 @@ describe('mail.controller', () => {
             await failedHandler(mockJob, new Error("Terminal failure"));
         }
 
-        expect(mockRedis.decr).toHaveBeenCalledWith('project:mail:count:proj_1:2026-05');
+        expect(mockRedis.eval).toHaveBeenCalledWith(
+            expect.any(String), 1, 'project:mail:count:proj_1:2026-05'
+        );
     });
 
     test('does not refund quota on non-terminal async worker failure', async () => {
@@ -207,7 +209,7 @@ describe('mail.controller', () => {
             }))
         }));
 
-        const mockRedis = { decr: jest.fn().mockResolvedValue(1) };
+        const mockRedis = { eval: jest.fn().mockResolvedValue(0) };
         jest.doMock('../../../../packages/common/src/config/redis', () => mockRedis);
 
         const { initPublicEmailWorker } = require('../../../../packages/common/src/queues/publicEmailQueue');
@@ -224,6 +226,6 @@ describe('mail.controller', () => {
             await failedHandler(mockJob, new Error("Temporary failure"));
         }
 
-        expect(mockRedis.decr).not.toHaveBeenCalled();
+        expect(mockRedis.eval).not.toHaveBeenCalled();
     });
 });
