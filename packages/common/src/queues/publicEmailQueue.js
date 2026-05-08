@@ -4,6 +4,9 @@ const Project = require('../models/Project');
 const { decrypt } = require('../utils/encryption');
 const { Resend } = require('resend');
 
+// Lua script: only decrement quota key if it exists (prevents phantom negative keys with no TTL)
+const DECR_IF_EXISTS_SCRIPT = `if redis.call('EXISTS', KEYS[1]) == 1 then return redis.call('DECR', KEYS[1]) else return 0 end`;
+
 // Create the email queue for public API
 const publicEmailQueue = new Queue('public-email-queue', { connection });
 
@@ -50,7 +53,14 @@ const initPublicEmailWorker = () => {
             from: fromAddress
         };
 
-        const redact = (e) => e.replace(/(.{2})(.*)(?=@)/, (_, keep, mask) => keep + '*'.repeat(mask.length));
+        const redact = (e) => {
+            const atIdx = e.indexOf('@');
+            if (atIdx <= 0) return e;
+            const local = e.slice(0, atIdx);
+            const domain = e.slice(atIdx);
+            if (local.length <= 2) return '*'.repeat(local.length) + domain;
+            return local.slice(0, 2) + '*'.repeat(local.length - 2) + domain;
+        };
         const toList = Array.isArray(finalPayload.to) ? finalPayload.to : [finalPayload.to];
         const maskedTo = toList.map(redact).join(', ');
 
@@ -84,7 +94,7 @@ const initPublicEmailWorker = () => {
         if (job && job.data && job.data.consumedQuotaKey) {
             const maxAttempts = job.opts?.attempts || 1;
             if (job.attemptsMade >= maxAttempts) {
-                const luaScript = `if redis.call('EXISTS', KEYS[1]) == 1 then return redis.call('DECR', KEYS[1]) else return 0 end`;
+                const luaScript = DECR_IF_EXISTS_SCRIPT;
                 await connection.eval(luaScript, 1, job.data.consumedQuotaKey).catch(() => {});
             }
         }
