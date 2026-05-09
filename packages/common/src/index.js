@@ -94,6 +94,7 @@ const { validateData, validateUpdateData } = require("./utils/validateData");
 const sessionManager = require("./utils/session.manager");
 const planLimits = require("./utils/planLimits");
 const AppError = require("./utils/AppError");
+const { checkLockout, recordFailedAttempt, clearLockout } = require("./utils/loginLockout");
 
 module.exports = {
   connectDB,
@@ -179,4 +180,7 @@ module.exports = {
   getPresignedUploadUrl,
   verifyUploadedFile,
   ApiAnalytics,
+  checkLockout,
+  recordFailedAttempt,
+  clearLockout,
 };
