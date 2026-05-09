@@ -49,20 +49,28 @@ return { attempts, 0, 0 }
 
 const checkLockout = async (projectId, email) => {
   const lockKey = getLockKey(projectId, email);
-  const isLocked = await redis.get(lockKey);
+  const atomicCheckLua = `
+local lockKey = KEYS[1]
+local lockoutSeconds = tonumber(ARGV[1])
 
-  if (!isLocked) {
-    return {
-      locked: false,
-      retryAfterSeconds: 0,
-    };
-  }
+local exists = redis.call('EXISTS', lockKey)
+if exists == 0 then
+  return { 0, 0 }
+end
 
-  const ttl = await redis.ttl(lockKey);
-  return {
-    locked: true,
-    retryAfterSeconds: ttl > 0 ? ttl : LOCKOUT_SECONDS,
-  };
+local ttl = redis.call('TTL', lockKey)
+if ttl < 0 then
+  ttl = lockoutSeconds
+end
+return { 1, ttl }
+`;
+
+  const rawResult = await redis.eval(atomicCheckLua, 1, lockKey, String(LOCKOUT_SECONDS));
+  const [lockedRaw, ttlRaw] = Array.isArray(rawResult) ? rawResult : [0, 0];
+  const locked = Number(lockedRaw) === 1;
+  const retryAfterSeconds = locked ? (Number(ttlRaw) || LOCKOUT_SECONDS) : 0;
+
+  return { locked, retryAfterSeconds };
 };
 
 const recordFailedAttempt = async (projectId, email) => {

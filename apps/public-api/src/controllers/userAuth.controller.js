@@ -1006,6 +1006,13 @@ module.exports.signup = async (req, res) => {
         // Model.create handles validation and default values
         const result = await Model.create(newUserPayload);
 
+        try {
+            // Fail-open: if Redis is unavailable, do not block successful signup.
+            await clearLockout(String(project._id), normalizedEmail);
+        } catch (lockErr) {
+            console.error('[login-lockout] clearLockout failed after signup:', lockErr?.message || lockErr);
+        }
+
         await redis.set(`project:${project._id}:otp:verification:${normalizedEmail}`, otp, 'EX', 300);
         await setPublicOtpCooldown(project._id, normalizedEmail, 'verification');
 
@@ -1049,6 +1056,13 @@ module.exports.signup = async (req, res) => {
  * @route POST /api/userAuth/login
  */
 module.exports.login = async (req, res, next) => {
+    const sendAuthError = (statusCode, message) => {
+        if (typeof next === 'function') {
+            return next(new AppError(statusCode, message));
+        }
+        return res.status(statusCode).json({ error: message });
+    };
+
     try {
         const project = req.project;
         const { email, password } = loginSchema.parse(req.body);
@@ -1057,16 +1071,14 @@ module.exports.login = async (req, res, next) => {
 
         let lockStatus = { locked: false, retryAfterSeconds: 0 };
         try {
+            // Fail-open: if Redis is unavailable, do not block login attempts.
             lockStatus = await checkLockout(projectId, normalizedEmail);
         } catch (lockErr) {
             console.error('[login-lockout] checkLockout failed:', lockErr?.message || lockErr);
         }
 
         if (lockStatus.locked) {
-            if (typeof next === 'function') {
-                return next(new AppError(423, `Account temporarily locked. Try again in ${lockStatus.retryAfterSeconds} seconds.`));
-            }
-            return res.status(423).json({ error: `Account temporarily locked. Try again in ${lockStatus.retryAfterSeconds} seconds.` });
+            return sendAuthError(423, `Account temporarily locked. Try again in ${lockStatus.retryAfterSeconds} seconds.`);
         }
 
         const usersColConfig = project.collections.find(c => c.name === 'users');
@@ -1080,45 +1092,36 @@ module.exports.login = async (req, res, next) => {
         if (!user) {
             let failedStatus = { locked: false, retryAfterSeconds: 0, attempts: 0 };
             try {
+                // Fail-open: if Redis is unavailable, do not block login on attempt tracking.
                 failedStatus = await recordFailedAttempt(projectId, normalizedEmail);
             } catch (attemptErr) {
                 console.error('[login-lockout] recordFailedAttempt failed (user missing):', attemptErr?.message || attemptErr);
             }
 
             if (failedStatus.locked) {
-                if (typeof next === 'function') {
-                    return next(new AppError(423, `Account temporarily locked. Try again in ${failedStatus.retryAfterSeconds} seconds.`));
-                }
-                return res.status(423).json({ error: `Account temporarily locked. Try again in ${failedStatus.retryAfterSeconds} seconds.` });
+                return sendAuthError(423, `Account temporarily locked. Try again in ${failedStatus.retryAfterSeconds} seconds.`);
             }
-            if (typeof next === 'function') {
-                return next(new AppError(400, 'Invalid email or password'));
-            }
-            return res.status(400).json({ error: 'Invalid email or password' });
+            return sendAuthError(400, 'Invalid email or password');
         }
 
         const validPass = await bcrypt.compare(password, user.password);
         if (!validPass) {
             let failedStatus = { locked: false, retryAfterSeconds: 0, attempts: 0 };
             try {
+                // Fail-open: if Redis is unavailable, do not block login on attempt tracking.
                 failedStatus = await recordFailedAttempt(projectId, normalizedEmail);
             } catch (attemptErr) {
                 console.error('[login-lockout] recordFailedAttempt failed (invalid password):', attemptErr?.message || attemptErr);
             }
 
             if (failedStatus.locked) {
-                if (typeof next === 'function') {
-                    return next(new AppError(423, `Account temporarily locked. Try again in ${failedStatus.retryAfterSeconds} seconds.`));
-                }
-                return res.status(423).json({ error: `Account temporarily locked. Try again in ${failedStatus.retryAfterSeconds} seconds.` });
+                return sendAuthError(423, `Account temporarily locked. Try again in ${failedStatus.retryAfterSeconds} seconds.`);
             }
-            if (typeof next === 'function') {
-                return next(new AppError(400, 'Invalid email or password'));
-            }
-            return res.status(400).json({ error: 'Invalid email or password' });
+            return sendAuthError(400, 'Invalid email or password');
         }
 
         try {
+            // Fail-open: if Redis is unavailable, do not block successful login.
             await clearLockout(projectId, normalizedEmail);
         } catch (clearErr) {
             console.error('[login-lockout] clearLockout failed:', clearErr?.message || clearErr);
@@ -1417,6 +1420,7 @@ module.exports.resetPasswordUser = async (req, res) => {
     try {
         const project = req.project;
         const { email, otp, newPassword } = resetPasswordSchema.parse(req.body);
+        const normalizedEmail = email.toLowerCase().trim();
 
         const redisKey = `project:${project._id}:otp:reset:${email}`;
         const storedOtp = await redis.get(redisKey);
@@ -1437,6 +1441,13 @@ module.exports.resetPasswordUser = async (req, res) => {
         );
 
         if (result.matchedCount === 0) return res.status(404).json({ error: "User not found" });
+
+        try {
+            // Fail-open: if Redis is unavailable, do not block password recovery success.
+            await clearLockout(String(project._id), normalizedEmail);
+        } catch (lockErr) {
+            console.error('[login-lockout] clearLockout failed after password reset:', lockErr?.message || lockErr);
+        }
 
         await redis.del(redisKey);
         res.json({ message: "Password updated successfully" });

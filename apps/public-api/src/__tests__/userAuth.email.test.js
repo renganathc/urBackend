@@ -241,6 +241,8 @@ describe('Email Authentication Flow', () => {
                 type: 'verification'
             }));
 
+            expect(clearLockout).toHaveBeenCalledWith('project_1', 'new@user.com');
+
             expect(issueAuthTokens).toHaveBeenCalled();
             expect(res.status).toHaveBeenCalledWith(201);
             expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
@@ -455,6 +457,7 @@ describe('Email Authentication Flow', () => {
                 { email: 'reset@user.com' },
                 { $set: { password: 'hashed_pw' } }
             );
+            expect(clearLockout).toHaveBeenCalledWith('project_1', 'reset@user.com');
             expect(redis.del).toHaveBeenCalled();
             expect(res.json).toHaveBeenCalled();
         });
