@@ -2,6 +2,7 @@
   "$schema": "https://mintlify.com/docs.json",
   "theme": "luma",
   "name": "urBackend",
+  "domain": "docs.ub.bitbros.in",
   "colors": {
     "primary": "#53e5ae",
     "light": "#347c64",
