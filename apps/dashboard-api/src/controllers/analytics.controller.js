@@ -84,7 +84,8 @@ module.exports.getGlobalStats = async (req, res) => {
       message: ""
     });
   } catch (err) {
-    res.status(500).json({ success: false, data: {}, message: err.message });
+    console.error('[analytics] getGlobalStats error:', err);
+    res.status(500).json({ success: false, data: {}, message: 'Internal server error' });
   }
 };
 
@@ -114,7 +115,8 @@ module.exports.getRecentActivity = async (req, res) => {
 
     res.json(formattedLogs);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error('[analytics] getRecentActivity error:', err);
+    res.status(500).json({ error: 'Internal server error' });
   }
 };
 
@@ -157,7 +159,8 @@ module.exports.getActivationFunnel = async (req, res) => {
 
     return res.json({ success: true, data: { steps }, message: '' });
   } catch (err) {
-    res.status(500).json({ success: false, data: {}, message: err.message });
+    console.error('[analytics] getActivationFunnel error:', err);
+    res.status(500).json({ success: false, data: {}, message: 'Internal server error' });
   }
 };
 
@@ -211,7 +214,8 @@ module.exports.getRetention = async (req, res) => {
       message: '',
     });
   } catch (err) {
-    res.status(500).json({ success: false, data: {}, message: err.message });
+    console.error('[analytics] getRetention error:', err);
+    res.status(500).json({ success: false, data: {}, message: 'Internal server error' });
   }
 };
 
@@ -272,7 +276,8 @@ module.exports.getEngagement = async (req, res) => {
       message: '',
     });
   } catch (err) {
-    res.status(500).json({ success: false, data: {}, message: err.message });
+    console.error('[analytics] getEngagement error:', err);
+    res.status(500).json({ success: false, data: {}, message: 'Internal server error' });
   }
 };
 
@@ -316,7 +321,7 @@ module.exports.getNorthStar = async (req, res) => {
       message: '',
     });
   } catch (err) {
-    res.status(500).json({ success: false, data: {}, message: err.message });
+    console.error('[analytics] getNorthStar error:', err);
+    res.status(500).json({ success: false, data: {}, message: 'Internal server error' });
   }
 };
-

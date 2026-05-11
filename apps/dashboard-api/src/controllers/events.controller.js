@@ -23,7 +23,7 @@ module.exports.track = async (req, res) => {
     const { event, properties = {}, projectId } = req.body;
 
     if (!event || typeof event !== 'string') {
-      return res.status(400).json({ success: false, message: 'event name is required' });
+      return res.status(400).json({ success: false, data: {}, message: 'event name is required' });
     }
 
     const normalizedEvent = event.trim().toLowerCase().replace(/\s+/g, '_');
@@ -31,6 +31,7 @@ module.exports.track = async (req, res) => {
     if (!ALLOWED_FRONTEND_EVENTS.has(normalizedEvent)) {
       return res.status(400).json({
         success: false,
+        data: {},
         message: `Unknown event: "${normalizedEvent}". Allowed: ${[...ALLOWED_FRONTEND_EVENTS].join(', ')}`,
       });
     }
@@ -46,6 +47,6 @@ module.exports.track = async (req, res) => {
     return res.json({ success: true, data: {}, message: 'Event queued' });
   } catch (err) {
     console.error('[events.controller] track error:', err);
-    return res.status(500).json({ success: false, message: 'Internal server error' });
+    return res.status(500).json({ success: false, data: {}, message: 'Internal server error' });
   }
 };

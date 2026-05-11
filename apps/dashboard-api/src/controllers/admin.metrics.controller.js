@@ -52,7 +52,8 @@ module.exports.getOverview = async (req, res) => {
       message: '',
     });
   } catch (err) {
-    res.status(500).json({ success: false, data: {}, message: err.message });
+    console.error('[admin.metrics] getOverview error:', err);
+    res.status(500).json({ success: false, data: {}, message: 'Internal server error' });
   }
 };
 
@@ -106,7 +107,8 @@ module.exports.getActivationFunnel = async (req, res) => {
 
     return res.json({ success: true, data: { steps }, message: '' });
   } catch (err) {
-    res.status(500).json({ success: false, data: {}, message: err.message });
+    console.error('[admin.metrics] getActivationFunnel error:', err);
+    res.status(500).json({ success: false, data: {}, message: 'Internal server error' });
   }
 };
 
@@ -225,7 +227,8 @@ module.exports.getCohorts = async (req, res) => {
       message: '',
     });
   } catch (err) {
-    res.status(500).json({ success: false, data: {}, message: err.message });
+    console.error('[admin.metrics] getCohorts error:', err);
+    res.status(500).json({ success: false, data: {}, message: 'Internal server error' });
   }
 };
 
@@ -274,7 +277,8 @@ module.exports.getFeatureUsage = async (req, res) => {
       message: '',
     });
   } catch (err) {
-    res.status(500).json({ success: false, data: {}, message: err.message });
+    console.error('[admin.metrics] getFeatureUsage error:', err);
+    res.status(500).json({ success: false, data: {}, message: 'Internal server error' });
   }
 };
 
@@ -318,7 +322,8 @@ module.exports.getReliability = async (req, res) => {
       message: '',
     });
   } catch (err) {
-    res.status(500).json({ success: false, data: {}, message: err.message });
+    console.error('[admin.metrics] getReliability error:', err);
+    res.status(500).json({ success: false, data: {}, message: 'Internal server error' });
   }
 };
 
@@ -357,7 +362,8 @@ module.exports.getTopProjects = async (req, res) => {
 
     return res.json({ success: true, data: { projects: agg }, message: '' });
   } catch (err) {
-    res.status(500).json({ success: false, data: {}, message: err.message });
+    console.error('[admin.metrics] getTopProjects error:', err);
+    res.status(500).json({ success: false, data: {}, message: 'Internal server error' });
   }
 };
 
@@ -398,6 +404,7 @@ module.exports.getChurnSignals = async (req, res) => {
       message: '',
     });
   } catch (err) {
-    res.status(500).json({ success: false, data: {}, message: err.message });
+    console.error('[admin.metrics] getChurnSignals error:', err);
+    res.status(500).json({ success: false, data: {}, message: 'Internal server error' });
   }
 };
