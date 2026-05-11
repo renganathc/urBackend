@@ -103,6 +103,8 @@ const releaseRoute = require('./routes/releases');
 const webhookRoute = require('./routes/webhooks');
 const analyticsRoute = require('./routes/analytics');
 const billingRoute = require('./routes/billing');
+const eventsRoute = require('./routes/events');
+const adminMetricsRoute = require('./routes/admin.metrics');
 
 app.use('/api/auth', authRoute); 
 app.use('/api/projects', dashboardLimiter, projectRoute);
@@ -110,6 +112,8 @@ app.use('/api/projects', dashboardLimiter, webhookRoute);
 app.use('/api/releases', releaseRoute);
 app.use('/api/analytics', dashboardLimiter, analyticsRoute);
 app.use('/api/billing', billingRoute);
+app.use('/api/events', dashboardLimiter, eventsRoute);
+app.use('/api/admin/metrics', dashboardLimiter, adminMetricsRoute);
 
 
 

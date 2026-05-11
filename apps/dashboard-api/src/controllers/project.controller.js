@@ -34,6 +34,7 @@ const { verifyUploadedFile } = require("@urbackend/common");
 const { getPublicIp } = require("@urbackend/common");
 const { clearCompiledModel } = require("@urbackend/common");
 const { createUniqueIndexes, ApiAnalytics } = require("@urbackend/common");
+const { emitEvent } = require('../utils/emitEvent');
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
 const SAFETY_MAX_BYTES = 100 * 1024 * 1024;
 const CONFIRM_UPLOAD_SIZE_TOLERANCE_BYTES = 64;
@@ -296,6 +297,9 @@ module.exports.createProject = async (req, res) => {
     projectObj.secretKey = rawSecretKey;
     delete projectObj.jwtSecret;
     projectObj.authProviders = sanitizeAuthProviders(projectObj.authProviders);
+
+    // Activation funnel — project created
+    emitEvent(req.user._id, 'project_created', { projectName: name }, newProject._id);
 
     res.status(201).json(projectObj);
   } catch (err) {
@@ -723,6 +727,14 @@ module.exports.createCollection = async (req, res) => {
     delete projectObj.publishableKey;
     delete projectObj.secretKey;
     delete projectObj.jwtSecret;
+
+    // Activation funnel — collection created
+    emitEvent(
+      req.user._id,
+      'collection_created',
+      { collectionName, isUsersCollection: collectionName === 'users' },
+      projectId,
+    );
 
     return res.status(201).json(projectObj);
   } catch (err) {

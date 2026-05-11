@@ -29,6 +29,7 @@ import Webhooks from './pages/Webhooks';
 import RequestPro from './pages/RequestPro';
 import AdminProRequests from './pages/AdminProRequests';
 import Onboarding from './pages/Onboarding';
+import AdminMetrics from './pages/AdminMetrics';
 
 import { LayoutProvider } from './context/LayoutContext';
 import { PlanProvider } from './context/PlanContext';
@@ -149,6 +150,14 @@ function AppContent() {
           <ProtectedRoute>
             <MainLayout>
               <AdminProRequests />
+            </MainLayout>
+          </ProtectedRoute>
+        } />
+
+        <Route path="/admin/metrics" element={
+          <ProtectedRoute>
+            <MainLayout>
+              <AdminMetrics />
             </MainLayout>
           </ProtectedRoute>
         } />

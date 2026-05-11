@@ -1069,5 +1069,256 @@ select option {
   }
 }
 
+/* ─────────────────────────────────────────────
+   ADMIN METRICS PAGE
+───────────────────────────────────────────── */
+.admin-metrics-page {
+  padding: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+  animation: fadeIn 0.3s ease;
+}
 
+.admin-metrics-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 2rem;
+  gap: 1rem;
+}
 
+.admin-metrics-title {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--color-text-main);
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.admin-badge {
+  font-size: 0.65rem;
+  font-weight: 700;
+  background: rgba(167, 139, 250, 0.15);
+  color: #a78bfa;
+  border: 1px solid rgba(167, 139, 250, 0.3);
+  border-radius: 4px;
+  padding: 3px 8px;
+  letter-spacing: 0.08em;
+}
+
+.admin-refresh-btn {
+  padding: 8px 16px;
+  border-radius: 6px;
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-card);
+  color: var(--color-text-muted);
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.admin-refresh-btn:hover:not(:disabled) {
+  color: var(--color-text-main);
+  border-color: var(--color-border-hover);
+}
+.admin-refresh-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.admin-error-banner {
+  padding: 0.75rem 1rem;
+  border-radius: 6px;
+  background: rgba(234, 84, 85, 0.1);
+  border: 1px solid rgba(234, 84, 85, 0.2);
+  color: #f87171;
+  margin-bottom: 1.5rem;
+  font-size: 0.875rem;
+}
+
+.admin-section {
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.admin-section-title {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--color-text-main);
+  margin-bottom: 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.admin-section-desc {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  margin-bottom: 1rem;
+}
+
+/* Stat Cards Grid */
+.admin-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 1rem;
+}
+
+.admin-stat-card {
+  background: var(--color-bg-input);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.admin-stat-label {
+  font-size: 0.7rem;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+}
+
+.admin-stat-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--color-text-main);
+  line-height: 1;
+}
+
+.admin-stat-sub {
+  font-size: 0.7rem;
+  color: var(--color-text-muted);
+}
+
+/* Funnel Bars */
+.admin-funnel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.admin-funnel-row {
+  display: grid;
+  grid-template-columns: 160px 1fr 140px;
+  align-items: center;
+  gap: 1rem;
+}
+
+.admin-funnel-label {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  font-weight: 500;
+}
+
+.admin-funnel-track {
+  height: 8px;
+  background: var(--color-bg-input);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.admin-funnel-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #3ecf8e, #818cf8);
+  border-radius: 4px;
+  transition: width 0.6s ease;
+  min-width: 2px;
+}
+
+.admin-funnel-count {
+  font-size: 0.8rem;
+  color: var(--color-text-main);
+  font-weight: 600;
+  text-align: right;
+}
+
+.admin-funnel-pct {
+  color: var(--color-text-muted);
+  font-weight: 400;
+}
+
+/* Cohort Controls */
+.admin-cohort-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+
+.admin-cohort-controls label {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  font-weight: 500;
+}
+
+.admin-month-input {
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-input);
+  color: var(--color-text-main);
+  font-size: 0.8rem;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.admin-month-input:focus { border-color: var(--color-primary); }
+
+/* Tables */
+.admin-table-wrapper {
+  overflow-x: auto;
+  border-radius: 6px;
+  border: 1px solid var(--color-border);
+}
+
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+}
+
+.admin-table th {
+  padding: 0.6rem 1rem;
+  text-align: left;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  background: var(--color-bg-input);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.admin-table td {
+  padding: 0.75rem 1rem;
+  color: var(--color-text-main);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.admin-table tr:last-child td { border-bottom: none; }
+.admin-table tr:hover td { background: var(--color-surface-hover); }
+
+.admin-table-rank {
+  color: var(--color-text-muted);
+  font-weight: 700;
+}
+
+/* Churn badge */
+.admin-churn-badge {
+  font-size: 0.65rem;
+  padding: 2px 8px;
+  border-radius: 20px;
+  background: rgba(248, 113, 113, 0.1);
+  color: #f87171;
+  border: 1px solid rgba(248, 113, 113, 0.2);
+  font-weight: 600;
+}
+
+.admin-empty {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  padding: 0.5rem 0;
+}

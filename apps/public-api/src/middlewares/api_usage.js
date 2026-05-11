@@ -51,12 +51,11 @@ const logger = (req, res, next) => {
                 }
             }
             
-            // --- NEW: API performance analytics ---
+            // --- API performance analytics ---
             if (req.project) {
                 const diff = process.hrtime(startHr);
                 const responseTimeMs = (diff[0] * 1e3 + diff[1] / 1e6).toFixed(2);
                 
-                // Asynchronously store analytics
                 setImmediate(async () => {
                     try {
                         await ApiAnalytics.create({
@@ -68,6 +67,37 @@ const logger = (req, res, next) => {
                         });
                     } catch (err) {
                         console.error('Failed to save API analytics:', err);
+                    }
+                });
+            }
+
+            // --- Activation funnel: first_api_success ---
+            // Fires only once per project lifetime, on the very first 2xx response.
+            // Uses a permanent Redis NX flag so we don't hit MongoDB on every request.
+            if (req.project && res.statusCode >= 200 && res.statusCode < 300) {
+                setImmediate(async () => {
+                    try {
+                        const flagKey = `project:activation:first_api_success:${req.project._id}`;
+                        const isFirst = await redis.set(flagKey, '1', 'NX');
+                        if (isFirst) {
+                            const { Project, PlatformEvent } = require('@urbackend/common');
+                            const proj = await Project.findById(req.project._id).select('owner').lean();
+                            if (proj?.owner) {
+                                await PlatformEvent.create({
+                                    developerId: proj.owner,
+                                    projectId: req.project._id,
+                                    event: 'first_api_success',
+                                    properties: {
+                                        method: req.method,
+                                        path: req.originalUrl,
+                                        statusCode: res.statusCode,
+                                    },
+                                    timestamp: new Date(),
+                                });
+                            }
+                        }
+                    } catch (err) {
+                        console.error('[activation] first_api_success check failed:', err.message);
                     }
                 });
             }

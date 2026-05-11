@@ -23,13 +23,24 @@ const {emailQueue} = require('@urbackend/common');
 const {authEmailQueue} = require('@urbackend/common');
 const {initWebhookWorker} = require('@urbackend/common');
 const {initAuthEmailWorker, initPublicEmailWorker} = require('@urbackend/common');
+const {initActivityRollupWorker, scheduleActivityRollup} = require('@urbackend/common');
+const {initReliabilityAlertWorker, scheduleReliabilityAlert} = require('@urbackend/common');
 
 // Initialize webhook worker
 if (process.env.NODE_ENV !== 'test') {
     initWebhookWorker();
     initAuthEmailWorker();
     initPublicEmailWorker();
+    initActivityRollupWorker();
+    scheduleActivityRollup().catch((err) =>
+        console.error('[ActivityRollup] Failed to schedule cron:', err.message)
+    );
+    initReliabilityAlertWorker();
+    scheduleReliabilityAlert().catch((err) =>
+        console.error('[ReliabilityAlert] Failed to schedule cron:', err.message)
+    );
 }
+
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));

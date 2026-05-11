@@ -14,6 +14,7 @@ const {
     resetPasswordSchema,
     verifyOtpSchema
 } = require("@urbackend/common");
+const { emitEvent } = require('../utils/emitEvent');
 
 const ACCESS_TOKEN_EXPIRES_IN = '15m';
 const REFRESH_TOKEN_EXPIRES_IN = '7d';
@@ -181,6 +182,9 @@ const findOrCreateGithubDeveloper = async (profile) => {
     });
 
     await developer.save();
+    // Activation funnel — GitHub signup counts as both signup + verified
+    emitEvent(developer._id, 'signup_completed', { method: 'github' });
+    emitEvent(developer._id, 'email_verified', { method: 'github' });
     return developer;
 };
 
@@ -280,6 +284,9 @@ module.exports.register = async (req, res) => {
 
         const newDev = new Developer({ email: email.toLowerCase().trim(), password: hashedPassword });
         await newDev.save();
+
+        // Activation funnel — signup completed
+        emitEvent(newDev._id, 'signup_completed', { method: 'email' });
 
         res.status(201).json({ message: "Registered successfully" });
     } catch (err) {
@@ -482,6 +489,9 @@ module.exports.verifyOtp = async (req, res) => {
         await otpDoc.deleteOne();
         existingUser.isVerified = true;
         await existingUser.save();
+
+        // Activation funnel — email verified
+        emitEvent(existingUser._id, 'email_verified', { method: 'otp' });
 
         await sendTokenResponse(existingUser, 200, res);
     } catch (err) {
