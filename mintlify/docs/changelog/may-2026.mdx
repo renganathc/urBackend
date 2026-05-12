@@ -6,33 +6,33 @@ description: What's new in urBackend — new features, improvements, and fixes f
 <Update label="2026-05-12" description="Week of April 28 – May 12" tags={["Feature", "Improvement", "Fix"]}>
 ## New features
 
-**Metrics Stack & Telemetry** — We added a comprehensive analytics and telemetry stack. The admin dashboard now includes a full activation funnel (signup through first API success). It also includes interactive D1/D7/D30 retention cohorts and churn signals. You can now use a new "My Performance" widget to track your 30-day API and Mail usage.
+**Metrics Stack & Telemetry** — You now get a comprehensive analytics and telemetry stack. The admin dashboard shows a full activation funnel from signup to first API success. You can also view interactive D1, D7, and D30 retention cohorts. You can track churn signals in the same view. A new "My Performance" widget lets you track your 30-day API and Mail usage.
 
-**Proactive Reliability Alerts** — A new background worker continuously monitors API error rates across all your projects. If your project experiences a >5% error rate within a 15-minute window, the system automatically flags a `reliability_spike` event in the admin dashboard.
+**Proactive Reliability Alerts** — A new background worker continuously monitors API error rates across all your projects. If your project exceeds a 5% error rate within a 15-minute window, you'll see a `reliability_spike` event flagged in the admin dashboard.
 
-**Mail API migrated to BullMQ** — We fully decoupled the `/api/mail/send` endpoint from the synchronous request path. Your outgoing emails now route through a high-performance Redis-backed BullMQ queue. This queue eliminates 429 rate-limiting timeouts. It also handles automatic retries. Furthermore, it ensures safe quota refunds on permanent failures.
+**Mail API migrated to BullMQ** — Your requests to `/api/mail/send` no longer block on the synchronous request path. All outgoing emails now route through a high-performance Redis-backed BullMQ queue. This reduces 429 rate-limiting responses. The queue also handles automatic retries and refunds your quota safely on permanent failures.
 
-**Interactive User Onboarding** — You now get a premium, full-page guided onboarding flow with glassmorphism UI in the dashboard. This flow replaces the old checklist. It walks you through project creation. It guides you through API key generation. It also helps you make your first API calls.
+**Interactive User Onboarding** — You now see a premium, full-page guided onboarding flow with glassmorphism UI. It replaces the old checklist. The flow walks you through project creation, API key generation, and your first API calls.
 
-**Schema Default Values** — You can now define optional default values for fields within your collection schemas. The system strictly enforces these defaults at runtime. They pass through Zod validation. They inject cleanly into MongoDB during insertions.
+**Schema Default Values** — You can now define optional default values for fields within your collection schemas. The runtime strictly enforces these defaults. Defaults pass through `Zod` validation and inject cleanly into `MongoDB` during insertions.
 
-**API Performance Analytics** — The public API now tracks your detailed latency and error-rate metrics. You can view your average response times directly in the dashboard. You can also view your error percentages there. You can filter these metrics via a new time-range selector.
+**API Performance Analytics** — The public API now tracks detailed latency and error-rate metrics for you. You can view your average response times and error percentages directly in the dashboard. You can filter the data using a new time-range selector.
 
 ## Improvements
 
-**Cursor Pagination** — You now get proper cursor-based pagination support in the database API. This eliminates off-by-one errors. It includes automatic tie-breaker sorting. This sorting preserves query determinism on large collections. We aligned the default limit to 100 records.
+**Cursor Pagination** — You can now use cursor-based pagination in the database API. This eliminates off-by-one errors. Automatic tie-breaker sorting preserves query determinism on large collections. The default limit is now aligned to 100 records.
 
-**Dashboard UI Redesign** — We redesigned the analytics pages and dashboard headers with a squared, premium dark-mode aesthetic. You can now see your dynamic API request usage directly in the header stats.
+**Dashboard UI Redesign** — You now see redesigned analytics pages and dashboard headers with a squared, premium dark-mode aesthetic. The header stats display your dynamic API request usage directly.
 
-**Password Reset OTP Cooldown** — We hardened the password reset flow with an atomic Redis-based OTP cooldown. This cooldown prevents account enumeration attacks. It does this by returning standardized success responses regardless of whether the email exists.
+**Password Reset OTP Cooldown** — Your password reset flow now uses an atomic Redis-based OTP cooldown. This protects you against account enumeration attacks. The endpoint returns standardized success responses regardless of whether the email exists.
 
 ## Bug fixes
 
 - Patched a severe polynomial regular expression denial-of-service (ReDoS) vulnerability in the release link extraction logic.
 - Resolved high-severity dependency vulnerabilities and updated the dashboard build configuration for Vite 6 compatibility.
-- Fixed a bug causing the login lockout to persist after a successful password reset.
+- Fixed a bug that caused login lockout to persist after a successful password reset.
 - Fixed duplicate key handling and negative limit clamping in bulk insert APIs.
 - Masked PII (personally identifiable information) from server logs and implemented robust email redaction.
-- Resolved a 'ns does not exist' error that occasionally triggered during a project's first collection creation.
+- Resolved a `ns does not exist` error that occasionally triggered during first collection creation.
 - Replaced `Math.random()` with cryptographically secure `crypto.randomInt()` for all OTP generation.
 </Update>
