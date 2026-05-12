@@ -8,13 +8,13 @@ description: What's new in urBackend — new features, improvements, and fixes f
 
 **Metrics Stack & Telemetry** — You now get a comprehensive analytics and telemetry stack. The admin dashboard shows a full activation funnel from signup to first API success. You can also view interactive D1, D7, and D30 retention cohorts. You can track churn signals in the same view. A new "My Performance" widget lets you track your 30-day API and Mail usage.
 
-**Proactive Reliability Alerts** — A new background worker continuously monitors API error rates across all your projects. If your project exceeds a 5% error rate within a 15-minute window, the system automatically flags a `reliability_spike` event in the admin dashboard.
+**Proactive Reliability Alerts** — A new background worker continuously monitors API error rates across all your projects. If your project exceeds a 5% error rate within a 15-minute window, you'll see a `reliability_spike` event flagged in the admin dashboard.
 
 **Mail API migrated to BullMQ** — Your requests to `/api/mail/send` no longer block on the synchronous request path. All outgoing emails now route through a high-performance Redis-backed BullMQ queue. This reduces 429 rate-limiting responses. The queue also handles automatic retries and refunds your quota safely on permanent failures.
 
 **Interactive User Onboarding** — You now see a premium, full-page guided onboarding flow with glassmorphism UI. It replaces the old checklist. The flow walks you through project creation, API key generation, and your first API calls.
 
-**Schema Default Values** — You can now define optional default values for fields within your collection schemas. The runtime strictly enforces these defaults. Defaults pass through Zod validation and inject cleanly into MongoDB during insertions.
+**Schema Default Values** — You can now define optional default values for fields within your collection schemas. The runtime strictly enforces these defaults. Defaults pass through `Zod` validation and inject cleanly into `MongoDB` during insertions.
 
 **API Performance Analytics** — The public API now tracks detailed latency and error-rate metrics for you. You can view your average response times and error percentages directly in the dashboard. You can filter the data using a new time-range selector.
 
