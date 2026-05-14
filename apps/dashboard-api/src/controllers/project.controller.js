@@ -1436,12 +1436,19 @@ module.exports.updateProject = async (req, res) => {
       updateFields.siteUrl = siteUrl || "";
     }
     if (resendApiKey !== undefined) {
-      if (typeof resendApiKey !== "string" || !resendApiKey.trim()) {
+      const trimmedKey = typeof resendApiKey === "string" ? resendApiKey.trim() : "";
+      if (!trimmedKey) {
         return res
           .status(400)
           .json({ error: "resendApiKey must be a non-empty string." });
       }
-      updateFields.resendApiKey = encrypt(resendApiKey.trim());
+      
+      // Sanitize the key: Prevent CRLF (HTTP Header Injection) and invalid characters
+      if (!/^re_[A-Za-z0-9_]+$/.test(trimmedKey)) {
+        return res.status(400).json({ error: "Invalid Resend API Key format." });
+      }
+
+      updateFields.resendApiKey = encrypt(trimmedKey);
     }
 
     const project = await Project.findOneAndUpdate(
