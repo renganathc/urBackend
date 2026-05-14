@@ -102,7 +102,6 @@ describe('mail.controller', () => {
         delete process.env.RESEND_API_KEY_2;
         process.env.EMAIL_FROM = 'mail@urbackend.app';
         process.env.RESEND_WEBHOOK_SECRET = 'whsec_test';
-        redis.decr.mockResolvedValue(0);
     });
 
     test('sends mail using BYOK key when configured', async () => {
@@ -309,6 +308,7 @@ describe('mail.controller', () => {
         mockProjectConfig({ _id: 'proj_1', resendApiKey: null });
         decrypt.mockReturnValue(null);
         redis.eval.mockResolvedValue(1);
+        redis.decr.mockResolvedValue(0);
         mockResendClient.batch.send.mockResolvedValue({
             data: null,
             error: { statusCode: 503, message: 'Provider unavailable' }
