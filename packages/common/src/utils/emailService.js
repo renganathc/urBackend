@@ -6,6 +6,22 @@ const dotenv = require('dotenv');
 dotenv.config();
 const resend = new Resend(process.env.RESEND_API_KEY_2 || process.env.RESEND_API_KEY || 're_dummy_key_for_testing');
 
+const FALLBACK_FROM_ADDRESS = 'urBackend <urbackend@apps.bitbros.in>';
+
+const formatFromAddress = (email_address) => {
+    const trimmed = email_address?.trim();
+    if (!trimmed) {
+        return FALLBACK_FROM_ADDRESS;
+    }
+
+    // simplified the sender formatting logic and removed the regex based parsing to avoid the CodeQL warning
+
+    return `urBackend <${trimmed}>`;
+};
+ 
+const defaultFromAddress = formatFromAddress(process.env.EMAIL_FROM);
+const replyToAddress = process.env.EMAIL_REPLY_TO?.trim() || "urbackend@apps.bitbros.in";
+
 async function sendOtp(email, otp, { subject = "Verify your urBackend account", customContent = null } = {}) {
     try {
         const htmlContent = customContent || `
@@ -43,11 +59,11 @@ async function sendOtp(email, otp, { subject = "Verify your urBackend account", 
         `;
 
         const { data, error } = await resend.emails.send({
-            from: 'urBackend <urbackend@apps.bitbros.in>',
+            from: defaultFromAddress,
             to: email,
             subject: subject,
             html: htmlContent,
-            replyTo: 'urbackend@apps.bitbros.in',
+            replyTo: replyToAddress,
         });
 
         if (error) {
@@ -120,11 +136,11 @@ async function sendReleaseEmail(email, { version, title, content, changelogUrl }
         `;
 
         const { data, error } = await resend.emails.send({
-            from: 'urBackend <urbackend@apps.bitbros.in>',
+            from: defaultFromAddress,
             to: email,
             subject: `Release: ${version} - ${title}`,
             html: htmlContent,
-            replyTo: 'urbackend@apps.bitbros.in',
+            replyTo: replyToAddress,
         });
 
         if (error) {
@@ -200,11 +216,17 @@ async function sendAuthOtpEmail(email, { otp, type, pname, byokKey, byokFrom }) 
 
 
         let mailClient = resend;
-        let fromAddress = `${finalDisplayName} <${safeEmailHandle}.urbackend@apps.bitbros.in>`;
+        let fromAddress = process.env.EMAIL_FROM
+            ? formatFromAddress(process.env.EMAIL_FROM)
+            : `${finalDisplayName} <${safeEmailHandle}.urbackend@apps.bitbros.in>`;
 
         if (byokKey) {
             mailClient = new Resend(byokKey);
-            fromAddress = byokFrom || "onboarding@resend.dev";
+            fromAddress = byokFrom
+                ? formatFromAddress(byokFrom)
+                : process.env.EMAIL_FROM
+                    ? formatFromAddress(process.env.EMAIL_FROM)
+                    : "onboarding@resend.dev";
         }
 
         const { data, error } = await mailClient.emails.send({
@@ -212,7 +234,7 @@ async function sendAuthOtpEmail(email, { otp, type, pname, byokKey, byokFrom }) 
             to: email,
             subject: subject,
             html: htmlContent,
-            replyTo: fromAddress,
+            replyTo: replyToAddress,
         });
 
         if (error) {
@@ -259,11 +281,11 @@ async function sendProRequestConfirmationEmail(email) {
         `;
 
         const { data, error } = await resend.emails.send({
-            from: 'urBackend <urbackend@apps.bitbros.in>',
+            from: defaultFromAddress,
             to: email,
             subject: "Pro Access Requested - urBackend ⚡",
             html: htmlContent,
-            replyTo: 'urbackend@apps.bitbros.in',
+            replyTo: replyToAddress,
         });
 
         if (error) {
