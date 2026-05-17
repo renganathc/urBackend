@@ -14,14 +14,16 @@ const {
 } = require("@urbackend/common");
 const { generateApiKey, hashApiKey } = require("@urbackend/common");
 const { z } = require("zod");
-const { encrypt } = require("@urbackend/common");
+const { encrypt, decrypt } = require("@urbackend/common");
 const { URL } = require("url");
 const path = require("path");
+const axios = require("axios");
 const { getConnection } = require("@urbackend/common");
 const { getCompiledModel } = require("@urbackend/common");
 const { QueryEngine } = require("@urbackend/common");
 const { storageRegistry } = require("@urbackend/common");
 const { AppError } = require("@urbackend/common");
+const { resolveEffectivePlan } = require("@urbackend/common");
 const {
   deleteProjectByApiKeyCache,
   setProjectById,
@@ -33,7 +35,7 @@ const { getPresignedUploadUrl } = require("@urbackend/common");
 const { verifyUploadedFile } = require("@urbackend/common");
 const { getPublicIp } = require("@urbackend/common");
 const { clearCompiledModel } = require("@urbackend/common");
-const { createUniqueIndexes, ApiAnalytics } = require("@urbackend/common");
+const { createUniqueIndexes, ApiAnalytics, MailLog } = require("@urbackend/common");
 const { emitEvent } = require('../utils/emitEvent');
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
 const SAFETY_MAX_BYTES = 100 * 1024 * 1024;
@@ -1435,12 +1437,19 @@ module.exports.updateProject = async (req, res) => {
       updateFields.siteUrl = siteUrl || "";
     }
     if (resendApiKey !== undefined) {
-      if (typeof resendApiKey !== "string" || !resendApiKey.trim()) {
+      const trimmedKey = typeof resendApiKey === "string" ? resendApiKey.trim() : "";
+      if (!trimmedKey) {
         return res
           .status(400)
           .json({ error: "resendApiKey must be a non-empty string." });
       }
-      updateFields.resendApiKey = encrypt(resendApiKey.trim());
+      
+      // Sanitize the key: Prevent CRLF (HTTP Header Injection) and invalid characters
+      if (!/^re_[A-Za-z0-9_]+$/.test(trimmedKey)) {
+        return res.status(400).json({ error: "Invalid Resend API Key format." });
+      }
+
+      updateFields.resendApiKey = encrypt(trimmedKey);
     }
 
     const project = await Project.findOneAndUpdate(
@@ -2366,4 +2375,251 @@ module.exports.updateCollectionRls = async (req, res) => {
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
-}
+};
+
+// -------------------- EXPANDED MAIL API PLATFORM PROXIES --------------------
+
+const getResolvedResendKey = (project) => {
+    if (project?.resendApiKey?.encrypted) {
+        try {
+            const key = decrypt(project.resendApiKey);
+            if (key) return { key, isByok: true };
+        } catch (e) {
+            console.error("Failed to decrypt project resend key", e);
+        }
+    }
+    return { key: process.env.RESEND_API_KEY_2 || process.env.RESEND_API_KEY, isByok: false };
+};
+
+module.exports.getMailLogs = async (req, res) => {
+    try {
+        const { projectId } = req.params;
+        const project = await Project.findOne({ _id: projectId, owner: req.user._id });
+        if (!project) return res.status(404).json({ success: false, message: "Project not found" });
+
+        const logs = await MailLog.find({ projectId: project._id })
+            .sort({ sentAt: -1 })
+            .limit(50)
+            .lean();
+
+        return res.json({ success: true, data: { logs } });
+    } catch (err) {
+        return res.status(500).json({ success: false, message: err.message });
+    }
+};
+
+module.exports.getResendLiveStatus = async (req, res) => {
+    try {
+        const { projectId, resendId } = req.params;
+        if (!/^[A-Za-z0-9_-]{1,128}$/.test(resendId)) {
+            return res.status(400).json({ success: false, message: "Invalid resendId format." });
+        }
+
+        const project = await Project.findOne({ _id: projectId, owner: req.user._id }).select("+resendApiKey.encrypted +resendApiKey.iv +resendApiKey.tag");
+        if (!project) return res.status(404).json({ success: false, message: "Project not found" });
+
+        const logEntry = await MailLog.findOne({ resendEmailId: resendId, projectId: project._id }).lean();
+        if (!logEntry) {
+            return res.status(404).json({ success: false, message: "Mail log entry not found for this project." });
+        }
+
+        const { key } = getResolvedResendKey(project);
+        if (!key) return res.status(400).json({ success: false, message: "Resend API Key is missing." });
+
+        const safeResendId = encodeURIComponent(resendId);
+        const response = await axios.get(`https://api.resend.com/emails/${safeResendId}`, {
+            headers: { Authorization: `Bearer ${key}` }
+        });
+
+        return res.json({ success: true, data: response.data });
+    } catch (err) {
+        const { resendId } = req.params;
+        if (err.response?.status === 404) {
+            return res.status(404).json({
+                success: false,
+                data: {
+                    id: resendId,
+                    last_event: "unknown",
+                    providerStatus: "not_found",
+                },
+                message: "Email status not found on Resend for this id."
+            });
+        }
+        const errorMsg = err.response?.data?.message || err.message;
+        return res.status(err.response?.status || 500).json({ success: false, message: errorMsg });
+    }
+};
+
+module.exports.manageAudiences = async (req, res) => {
+    try {
+        const { projectId } = req.params;
+        const project = await Project.findOne({ _id: projectId, owner: req.user._id }).select("+resendApiKey.encrypted +resendApiKey.iv +resendApiKey.tag");
+        if (!project) return res.status(404).json({ success: false, message: "Project not found" });
+
+        const { key, isByok } = getResolvedResendKey(project);
+        if (!isByok || !key) {
+            return res.status(403).json({ success: false, message: "Audiences require a custom Resend API Key (BYOK) configured in Project Settings." });
+        }
+
+        if (req.method === "GET") {
+            const response = await axios.get("https://api.resend.com/audiences", {
+                headers: { Authorization: `Bearer ${key}` }
+            });
+            return res.json({ success: true, data: response.data });
+        }
+
+        if (req.method === "POST") {
+            const { name } = req.body;
+            if (!name) return res.status(400).json({ success: false, message: "Audience name required" });
+
+            const response = await axios.post("https://api.resend.com/audiences", { name }, {
+                headers: { Authorization: `Bearer ${key}` }
+            });
+            return res.json({ success: true, data: response.data });
+        }
+
+        return res.status(405).json({ success: false, message: "Method not allowed" });
+    } catch (err) {
+        const errorMsg = err.response?.data?.message || err.message;
+        return res.status(err.response?.status || 500).json({ success: false, message: errorMsg });
+    }
+};
+
+module.exports.deleteAudience = async (req, res) => {
+    try {
+        const { projectId, audienceId } = req.params;
+        if (!/^[A-Za-z0-9_-]+$/.test(audienceId)) {
+            return res.status(400).json({ success: false, message: "Invalid audienceId format" });
+        }
+        const safeAudienceId = encodeURIComponent(audienceId);
+        const project = await Project.findOne({ _id: projectId, owner: req.user._id }).select("+resendApiKey.encrypted +resendApiKey.iv +resendApiKey.tag");
+        if (!project) return res.status(404).json({ success: false, message: "Project not found" });
+
+        const { key, isByok } = getResolvedResendKey(project);
+        if (!isByok || !key) {
+            return res.status(403).json({ success: false, message: "Audiences require a custom Resend API Key (BYOK)." });
+        }
+
+        await axios.delete(`https://api.resend.com/audiences/${safeAudienceId}`, {
+            headers: { Authorization: `Bearer ${key}` }
+        });
+
+        return res.json({ success: true, message: "Audience deleted successfully" });
+    } catch (err) {
+        const errorMsg = err.response?.data?.message || err.message;
+        return res.status(err.response?.status || 500).json({ success: false, message: errorMsg });
+    }
+};
+
+module.exports.manageContacts = async (req, res) => {
+    try {
+        const { projectId, audienceId } = req.params;
+        if (!/^[A-Za-z0-9_-]+$/.test(audienceId)) {
+            return res.status(400).json({ success: false, message: "Invalid audienceId format" });
+        }
+        const safeAudienceId = encodeURIComponent(audienceId);
+        const project = await Project.findOne({ _id: projectId, owner: req.user._id }).select("+resendApiKey.encrypted +resendApiKey.iv +resendApiKey.tag");
+        if (!project) return res.status(404).json({ success: false, message: "Project not found" });
+
+        const { key, isByok } = getResolvedResendKey(project);
+        if (!isByok || !key) {
+            return res.status(403).json({ success: false, message: "Contacts require a custom Resend API Key (BYOK)." });
+        }
+
+        if (req.method === "GET") {
+            const response = await axios.get(`https://api.resend.com/audiences/${safeAudienceId}/contacts`, {
+                headers: { Authorization: `Bearer ${key}` }
+            });
+            return res.json({ success: true, data: response.data });
+        }
+
+        if (req.method === "POST") {
+            const { email, firstName, lastName, unsubscribed } = req.body;
+            if (!email) return res.status(400).json({ success: false, message: "Contact email required" });
+
+            const payload = { email, first_name: firstName, last_name: lastName, unsubscribed };
+            const response = await axios.post(`https://api.resend.com/audiences/${safeAudienceId}/contacts`, payload, {
+                headers: { Authorization: `Bearer ${key}` }
+            });
+            return res.json({ success: true, data: response.data });
+        }
+
+        return res.status(405).json({ success: false, message: "Method not allowed" });
+    } catch (err) {
+        const errorMsg = err.response?.data?.message || err.message;
+        return res.status(err.response?.status || 500).json({ success: false, message: errorMsg });
+    }
+};
+
+module.exports.deleteContact = async (req, res) => {
+    try {
+        const { projectId, audienceId, contactId } = req.params;
+        const project = await Project.findOne({ _id: projectId, owner: req.user._id }).select("+resendApiKey.encrypted +resendApiKey.iv +resendApiKey.tag");
+        if (!project) return res.status(404).json({ success: false, message: "Project not found" });
+
+        const { key, isByok } = getResolvedResendKey(project);
+        if (!isByok || !key) {
+            return res.status(403).json({ success: false, message: "Contacts require a custom Resend API Key (BYOK)." });
+        }
+
+        const resendIdPattern = /^[A-Za-z0-9_-]+$/;
+        if (!resendIdPattern.test(audienceId) || !resendIdPattern.test(contactId)) {
+            return res.status(400).json({ success: false, message: "Invalid audienceId or contactId format." });
+        }
+
+        const safeAudienceId = encodeURIComponent(audienceId);
+        const safeContactId = encodeURIComponent(contactId);
+
+        // Resend uses DELETE /audiences/{audience_id}/contacts/{id} or by email
+        await axios.delete(`https://api.resend.com/audiences/${safeAudienceId}/contacts/${safeContactId}`, {
+            headers: { Authorization: `Bearer ${key}` }
+        });
+
+        return res.json({ success: true, message: "Contact removed successfully" });
+    } catch (err) {
+        const errorMsg = err.response?.data?.message || err.message;
+        return res.status(err.response?.status || 500).json({ success: false, message: errorMsg });
+    }
+};
+
+module.exports.sendMarketingBroadcast = async (req, res) => {
+    try {
+        const { projectId } = req.params;
+        const { audienceId, subject, html, from } = req.body;
+
+        const project = await Project.findOne({ _id: projectId, owner: req.user._id }).select("+resendApiKey.encrypted +resendApiKey.iv +resendApiKey.tag");
+        if (!project) return res.status(404).json({ success: false, message: "Project not found" });
+
+        const { key, isByok } = getResolvedResendKey(project);
+        if (!isByok || !key) {
+            return res.status(403).json({ success: false, message: "Marketing Broadcasts require a custom Resend API Key (BYOK)." });
+        }
+
+        const dev = await Developer.findById(req.user._id);
+        const effectivePlan = resolveEffectivePlan(dev);
+        if (effectivePlan !== "pro") {
+            return res.status(403).json({ success: false, message: "Marketing Broadcasts are a premium feature requiring the Pro tier." });
+        }
+
+        if (!audienceId || !subject || !html) {
+            return res.status(400).json({ success: false, message: "Audience ID, subject, and html content are required." });
+        }
+
+        // Mass marketing broadcasts logic using Resend Broadcasts API
+        const payload = {
+            audience_id: audienceId,
+            subject,
+            html,
+            from: from || project.resendFromEmail || "onboarding@resend.dev"
+        };
+
+        const response = await axios.post("https://api.resend.com/broadcasts", payload, {
+            headers: { Authorization: `Bearer ${key}` }
+        });
+
+        return res.json({ success: true, data: response.data, message: "Broadcast dispatched successfully!" });
+    } catch (err) {
+        const errorMsg = err.response?.data?.message || err.message;
+        return res.status(err.response?.status || 500).json({ success: false, message: errorMsg });
+    }
+};
