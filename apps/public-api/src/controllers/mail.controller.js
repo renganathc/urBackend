@@ -418,6 +418,9 @@ module.exports.getMailStatus = async (req, res) => {
   try {
     const { resendId } = req.params;
     if (!resendId) return res.status(400).json({ success: false, data: {}, message: "resendId is required." });
+    if (!/^[A-Za-z0-9_-]{1,128}$/.test(resendId)) {
+      return res.status(400).json({ success: false, data: {}, message: "Invalid resendId format." });
+    }
 
     const projectId = req.project?._id;
     const logEntry = await MailLog.findOne({ resendEmailId: resendId, projectId }).lean();
@@ -612,8 +615,12 @@ module.exports.getAudiences = async (req, res) => {
 
 module.exports.getAudienceById = async (req, res) => {
   try {
+    const { id } = req.params;
+    if (!/^[A-Za-z0-9_-]+$/.test(id)) {
+      return res.status(400).json({ success: false, data: {}, message: "Invalid audience ID format." });
+    }
     const resend = await requireByokGate(req);
-    const { data, error } = await resend.audiences.get(req.params.id);
+    const { data, error } = await resend.audiences.get(id);
     if (error) return res.status(error.statusCode || 500).json({ success: false, data: {}, message: error.message });
 
     return res.status(200).json({ success: true, data });
@@ -624,8 +631,12 @@ module.exports.getAudienceById = async (req, res) => {
 
 module.exports.deleteAudience = async (req, res) => {
   try {
+    const { id } = req.params;
+    if (!/^[A-Za-z0-9_-]+$/.test(id)) {
+      return res.status(400).json({ success: false, data: {}, message: "Invalid audience ID format." });
+    }
     const resend = await requireByokGate(req);
-    const { data, error } = await resend.audiences.remove(req.params.id);
+    const { data, error } = await resend.audiences.remove(id);
     if (error) return res.status(error.statusCode || 500).json({ success: false, data: {}, message: error.message });
 
     return res.status(200).json({ success: true, data });
@@ -638,8 +649,11 @@ module.exports.deleteAudience = async (req, res) => {
 
 module.exports.addContact = async (req, res) => {
   try {
-    const resend = await requireByokGate(req);
     const { id } = req.params;
+    if (!/^[A-Za-z0-9_-]+$/.test(id)) {
+      return res.status(400).json({ success: false, data: {}, message: "Invalid audience ID format." });
+    }
+    const resend = await requireByokGate(req);
     const { email, firstName, lastName, unsubscribed } = req.body;
     if (!email) return res.status(400).json({ success: false, data: {}, message: "Contact email is required." });
 
@@ -659,8 +673,12 @@ module.exports.addContact = async (req, res) => {
 
 module.exports.getContacts = async (req, res) => {
   try {
+    const { id } = req.params;
+    if (!/^[A-Za-z0-9_-]+$/.test(id)) {
+      return res.status(400).json({ success: false, data: {}, message: "Invalid audience ID format." });
+    }
     const resend = await requireByokGate(req);
-    const { data, error } = await resend.contacts.list({ audienceId: req.params.id });
+    const { data, error } = await resend.contacts.list({ audienceId: id });
     if (error) return res.status(error.statusCode || 500).json({ success: false, data: {}, message: error.message });
 
     return res.status(200).json({ success: true, data });
@@ -671,8 +689,11 @@ module.exports.getContacts = async (req, res) => {
 
 module.exports.getContactById = async (req, res) => {
   try {
-    const resend = await requireByokGate(req);
     const { id, contactId } = req.params;
+    if (!/^[A-Za-z0-9_-]+$/.test(id) || !/^[A-Za-z0-9_-]+$/.test(contactId)) {
+      return res.status(400).json({ success: false, data: {}, message: "Invalid audience or contact ID format." });
+    }
+    const resend = await requireByokGate(req);
     const { data, error } = await resend.contacts.get({ audienceId: id, id: contactId });
     if (error) return res.status(error.statusCode || 500).json({ success: false, data: {}, message: error.message });
 
@@ -684,8 +705,11 @@ module.exports.getContactById = async (req, res) => {
 
 module.exports.updateContact = async (req, res) => {
   try {
-    const resend = await requireByokGate(req);
     const { id, contactId } = req.params;
+    if (!/^[A-Za-z0-9_-]+$/.test(id) || !/^[A-Za-z0-9_-]+$/.test(contactId)) {
+      return res.status(400).json({ success: false, data: {}, message: "Invalid audience or contact ID format." });
+    }
+    const resend = await requireByokGate(req);
     const { firstName, lastName, unsubscribed } = req.body;
 
     const payload = { audienceId: id, id: contactId };
@@ -704,8 +728,11 @@ module.exports.updateContact = async (req, res) => {
 
 module.exports.deleteContact = async (req, res) => {
   try {
-    const resend = await requireByokGate(req);
     const { id, contactId } = req.params;
+    if (!/^[A-Za-z0-9_-]+$/.test(id) || !/^[A-Za-z0-9_-]+$/.test(contactId)) {
+      return res.status(400).json({ success: false, data: {}, message: "Invalid audience or contact ID format." });
+    }
+    const resend = await requireByokGate(req);
     const { data, error } = await resend.contacts.remove({ audienceId: id, id: contactId });
     if (error) return res.status(error.statusCode || 500).json({ success: false, data: {}, message: error.message });
 
@@ -755,8 +782,12 @@ module.exports.createBroadcast = async (req, res) => {
 
 module.exports.sendBroadcast = async (req, res) => {
   try {
+    const { id } = req.params;
+    if (!/^[A-Za-z0-9_-]+$/.test(id)) {
+      return res.status(400).json({ success: false, data: {}, message: "Invalid broadcast ID format." });
+    }
     const resend = await requireBroadcastGate(req);
-    const { data, error } = await resend.broadcasts.send(req.params.id);
+    const { data, error } = await resend.broadcasts.send(id);
     if (error) return res.status(error.statusCode || 500).json({ success: false, data: {}, message: error.message });
 
     return res.status(200).json({ success: true, data });
@@ -779,8 +810,12 @@ module.exports.getBroadcasts = async (req, res) => {
 
 module.exports.getBroadcastById = async (req, res) => {
   try {
+    const { id } = req.params;
+    if (!/^[A-Za-z0-9_-]+$/.test(id)) {
+      return res.status(400).json({ success: false, data: {}, message: "Invalid broadcast ID format." });
+    }
     const resend = await requireBroadcastGate(req);
-    const { data, error } = await resend.broadcasts.get(req.params.id);
+    const { data, error } = await resend.broadcasts.get(id);
     if (error) return res.status(error.statusCode || 500).json({ success: false, data: {}, message: error.message });
 
     return res.status(200).json({ success: true, data });
@@ -791,8 +826,12 @@ module.exports.getBroadcastById = async (req, res) => {
 
 module.exports.deleteBroadcast = async (req, res) => {
   try {
+    const { id } = req.params;
+    if (!/^[A-Za-z0-9_-]+$/.test(id)) {
+      return res.status(400).json({ success: false, data: {}, message: "Invalid broadcast ID format." });
+    }
     const resend = await requireBroadcastGate(req);
-    const { data, error } = await resend.broadcasts.remove(req.params.id);
+    const { data, error } = await resend.broadcasts.remove(id);
     if (error) return res.status(error.statusCode || 500).json({ success: false, data: {}, message: error.message });
 
     return res.status(200).json({ success: true, data });
