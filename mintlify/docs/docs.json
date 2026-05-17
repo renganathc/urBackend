@@ -44,16 +44,17 @@
               "concepts/row-level-security"
             ]
           },
-          {
-            "group": "Guides",
-            "pages": [
-              "guides/authentication",
-              "guides/social-auth",
-              "guides/database",
-              "guides/storage",
-              "guides/webhooks"
-            ]
-          },
+           {
+             "group": "Guides",
+             "pages": [
+               "guides/authentication",
+               "guides/social-auth",
+               "guides/mail-platform",
+               "guides/database",
+               "guides/storage",
+               "guides/webhooks"
+             ]
+           },
           {
             "group": "SDK",
             "pages": [
