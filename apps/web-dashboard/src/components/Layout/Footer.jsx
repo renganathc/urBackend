@@ -26,8 +26,14 @@ export default function Footer() {
                            Be the first to know what’s shipping next.
                         </p>
                         <div className="footer-input-wrapper">
-                            <input type="email" placeholder="Enter your E-mail" />
-                            <button><ArrowRight size={16} /></button>
+                            <input 
+                                type="email" 
+                                placeholder="Enter your E-mail" 
+                                aria-label="Email address for newsletter subscription"
+                            />
+                            <button type="button" aria-label="Subscribe to newsletter">
+                                <ArrowRight size={16} />
+                            </button>
                         </div>
                     </div>
 
@@ -81,10 +87,10 @@ export default function Footer() {
                 .footer-top {
                     width: 80%;
                     display: grid;
-                    grid-template-columns: 35vw 20vw 1fr 1fr;
+                    grid-template-columns: minmax(280px, 360px) 1fr;
                     flex-wrap: wrap;
                     justify-self: center;
-                    gap: 8rem; /* Reduced from 8rem to prevent wrapping */
+                    gap: 4rem; /* Reduced from 8rem to prevent wrapping */
                     margin-bottom: 5rem;
                     text-align: left; /* Keep text left aligned inside blocks */    
                 }
@@ -96,11 +102,13 @@ export default function Footer() {
 
                 .footer-nav-grid {
                     padding-top: 1rem;
+                    padding-left: 10rem;
                     width: 100%;
                     display: flex;
-                    flex-direction: rows;
+                    flex-direction: row;
                     gap: 8rem;
                     flex-wrap: wrap;
+                    justify-content: space-evenly;
                 }
                 /* --------------------- */
 
@@ -232,6 +240,7 @@ export default function Footer() {
                     .footer-nav-grid { 
                         width: 100%;
                         gap: 0; 
+                        padding-left: 0;
                         justify-content: flex-start;
                         text-align: left;
                         display: grid;

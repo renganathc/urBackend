@@ -84,6 +84,7 @@
 
 /* NAVBAR */
 .nav-glass {
+    --nav-height: 80px;
     background: rgba(3, 3, 3, 0.7);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
@@ -329,7 +330,7 @@
     text-align: center;
     min-height: calc(100vh - 80px);
     justify-content: center;
-    margin-top: 10vh;
+    margin-top: var(--nav-height, 80px);
 }
 
 .status-pill {
@@ -1272,7 +1273,7 @@
     }
 
     .hero-section {
-        padding-top: 5rem;
+        padding-top: 1rem;
     }
 
     .lh-content {
