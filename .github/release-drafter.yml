@@ -1,50 +1,36 @@
-name-template: "v$RESOLVED_VERSION"
-tag-template: "v$RESOLVED_VERSION"
+name-template: 'v$RESOLVED_VERSION'
+tag-template: 'v$RESOLVED_VERSION'
 
 version-resolver:
-  major:
-    labels:
-      - "major"
   minor:
     labels:
-      - "minor"
-      - "feat"
-      - "feature"
+      - 'feature'
+      - 'enhancement'
   patch:
     labels:
-      - "patch"
-      - "fix"
-      - "bug"
-  default: "patch"
+      - 'bug'
+      - 'chore'
+      - 'documentation'
+  default: patch
 
 categories:
-  - title: "🚀 Added"
+  - title: '🚀 Added'
     labels:
-      - "feat"
-      - "feature"
-      - "enhancement"
-  - title: "🔄 Changed"
+      - 'feature'
+      - 'enhancement'
+  - title: '🐛 Fixed'
     labels:
-      - "refactor"
-      - "performance"
-      - "change"
-  - title: "🐛 Fixed"
+      - 'bug'
+  - title: '📝 Documentation'
     labels:
-      - "fix"
-      - "bug"
-  - title: "📝 Documentation"
-    labels:
-      - "docs"
-      - "documentation"
-  - title: "🔒 Security"
-    labels:
-      - "security"
+      - 'documentation'
 
-change-template: "- $TITLE (#$NUMBER) @$AUTHOR"
+change-template: '- $TITLE @$AUTHOR (#$NUMBER)'
+change-title-escapes: '\<*_&'
 
 template: |
   ## What's Changed
 
   $CHANGES
 
-  *Thank you to our amazing contributors!*
+  **Full Changelog**: https://github.com/$OWNER/$REPOSITORY/compare/$PREVIOUS_TAG...v$RESOLVED_VERSION

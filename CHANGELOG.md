@@ -1,132 +1,171 @@
-Changelog
+# Changelog
 
-All notable changes to this project will be documented in this file.
+All notable changes to urBackend will be documented in this file.
 
-The format is based on Keep a Changelog,
-and this project adheres to Semantic Versioning.
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-[0.9.0] - 2026-04-15
+## [Unreleased]
 
-Added
+---
 
-Multi-Database Support: Added full connection drivers for both PostgreSQL and MongoDB database architectures.
+## [v0.9.0] - 2026-04-08
 
-Custom Domains: Implemented automated SSL certificate generation and custom domain binding for deployed APIs.
+### Added
+- Webhook system with BullMQ retry logic for reliable event delivery
+- Bring Your Own Key (BYOK) support for transactional mail via Resend
 
-Billing integration: Added Lemon Squeezy and Razorpay payment integrations to authorize paywalled backend endpoints.
+### Fixed
+- Follow-up issues from Social Auth PR #81 (social auth edge cases)
 
-Auto-generated SDKs: Introduced a CLI build step that automatically exports TypeScript/JavaScript SDK clients based on project schemas.
+---
 
-Changed
+## [v0.8.0] - 2026-04-06
 
-Connection Pooling: Refactored the core database connection pool lifecycle to dynamically scale based on active CPU core count.
+### Added
+- GitHub and Google OAuth 2.0 social login support
+- Secure one-time `rtCode` token exchange mechanism
+- Automatic account linking when provider email matches an existing user
+- Auto-generated, read-only provider callback URLs in the dashboard
+- Encrypted storage for OAuth client secrets
+- `/api/userAuth/social/exchange` endpoint for frontend callback handling
+- Aria labels for improved accessibility in `CollectionsTable.jsx` and `DatabaseSidebar.jsx`
+- Working example added at `examples/social-demo/`
 
-API Routing: Optimised prefix routing tables inside the router middleware, reducing middleware routing latency by 14%.
+### Fixed
+- Email collision protection — rejects social login if email exists but provider email is unverified
+- OAuth error forwarding — provider errors now redirect to frontend with `?error=...`
 
-Fixed
+### Security
+- Site URL must be configured before enabling social auth providers
+- API key verification enforced on the `/social/exchange` endpoint
 
-JWT Mismatch: Resolved an edge case where token validation would occasionally fail during rapid concurrent token-refresh operations.
+---
 
-CORS Configuration: Fixed a bug preventing wildcard domains (*) from being resolved properly under complex proxy configurations.
+## [v0.7.0] - 2026-04-04
 
-[0.8.0] - 2026-02-10
+### Added
+- Row-Level Security (RLS) read modes: `public-read` and `private`
+- Unique field constraints on collections enforced at the database level
+- Backward compatibility for existing `owner-write-only` RLS rules
 
-Added
+### Changed
+- JWT refresh flow now uses rotating sessions
+- Documentation updated for new RLS security patterns
 
-API Rate Limiting: Implemented configurable IP-based and user-token-based rate limiters for public routes.
+### Fixed
+- Synchronized monorepo versioning across all core apps
+- Duplicate key issues in package manifests
 
-Webhooks: Added outgoing webhook subscription handlers, allowing external services to receive event updates on data mutations.
+---
 
-Role-Based Access Control (RBAC): Integrated granular access policies to protect specific collections by assigning roles (e.g., Admin, Moderator, User).
+## [v0.6.0] - 2026-03-31
 
-Changed
+### Added
+- AWS S3 storage integration with full region support
+- Cloudflare R2 storage integration (S3-compatible)
+- Storage Adapter Pattern — consistent `.upload()`, `.remove()`, `.list()`, `.getPublicUrl()` API across all providers
+- `publicUrlHost` field for mapping custom CDN/CloudFront domains to storage assets
+- Dynamic Project Settings form that adapts based on the selected storage provider
 
-Session Tracking: Updated user session storage to utilize Redis memory storage when available, defaulting back to file-based session stores in minimal environments.
+### Fixed
+- `package-lock.json` integrity mismatch causing CI/CD failures
+- S3 root directory listing bug (trailing slash appended incorrectly)
+- UI label typos in Storage Configuration panel
 
-Fixed
+### Security
+- All external storage credentials encrypted at rest using AES-256-GCM
 
-Query Parser Error: Fixed a syntax error in the API endpoint query parser that occurred when handling deeply nested JSON filter queries.
+---
 
-[0.7.0] - 2025-12-05
+## [v0.5.0] - 2026-03-29
 
-Added
+### Added
+- `POST /api/userAuth/refresh-token` endpoint
+- `POST /api/userAuth/logout` endpoint
+- Redis-backed refresh session store
+- Refresh token rotation on each successful refresh
+- Replay detection and full session-chain revocation on token reuse
+- Rate checks for refresh attempts (per IP, token, and user)
+- Mobile/non-browser support via `x-refresh-token` header
 
-Storage Buckets: Added native support for S3-compatible cloud storage providers (S3, MinIO, DigitalOcean Spaces).
+### Changed
+- `token` retained as backward-compatible alias; `accessToken` is now the canonical field
+- Docs updated: `docs/authentication.md`, `docs/api-reference.md`
 
-Advanced Query Filters: Introduced dynamic syntax operators to APIs: $or, $and, $in, along with pagination params (limit, skip).
+---
 
-Dashboard UI Enhancements: Rebuilt the collections management interface using an interactive spreadsheet-style grid.
+## [v0.4.0] - 2026-03-29
 
-Fixed
-
-Upload Timeout: Patched an issue where multi-part file uploads larger than 50MB would prematurely close connection pipelines.
-
-[0.6.0] - 2025-10-18
-
-Added
-
-Authentication Engine: Implemented standard JSON Web Token (JWT) flow parameters complete with sign-up, login, and secure logout handlers.
-
-Email Mailers: Added SMTP provider bindings for dynamic verification, onboarding, and password reset email automation.
-
-Changed
-
-Logger Format: Upgraded standard system output logs to standard structured JSON format to aid in production monitoring (Datadog/Winston format).
-
-[0.5.0] - 2025-08-12
-
-Added
-
-Visual Schema Builder: Built an interactive GUI inside the management dashboard to visually define schemas and field validation criteria.
-
-Custom Header Middleware: Allowed developers to configure global response headers through the project management dashboard interface.
-
-Fixed
-
-Validation Fallback: Handled cases where empty or undefined string fields would fail validation rather than falling back to schema default values.
-
-[0.4.0] - 2025-06-01
-
-Added
-
-CLI Initialization Wizard: Introduced the urbackend init interactive terminal command to instantly bootstrap local project configurations.
-
-Environment variables loader: Integrated an automated mechanism to read and apply .env parameters during framework boot sequence.
-
-Changed
-
-Route Initialization: Relocated the middleware mounting execution pipeline to run earlier in the server boot process.
-
-[0.3.0] - 2025-04-10
-
-Added
-
-Automated Mock Data Generator: Added a feature to populate collections with realistic placeholder records during testing environments.
-
-Health Check Endpoint: Implemented standard /health status endpoints returning system resource statistics (CPU, memory, database connection state).
-
-Fixed
-
-Process Leak: Resolved a critical bug causing isolated Node.js child-processes to remain suspended in memory after hot-reloading configurations.
-
-[0.2.0] - 2025-02-15
-
-Added
-
-Developer Live Reloading: Integrated instant runtime rebuild configuration triggers for quicker localized API development cycles.
-
-Local JSON Database Support: Created a local filesystem-based database driver (db.json) for zero-dependency prototyping.
-
-Changed
-
-Error Handling Architecture: Standardized error formats to return consistent API response payloads containing { error: true, message: "..." }.
-
-[0.1.0] - 2024-12-01
-
-Added
-
-Initial Public Engine Release: Established core service framework engine allowing immediate creation of relational/NoSQL API collections.
-
-Instant CRUD Generation: Automated exposure of POST, GET, PUT, and DELETE endpoints immediately upon collection declaration.
-
-Documentation Engine: Auto-generated Swagger/OpenAPI runtime interface for visual testing of newly launched endpoints.
+### Added
+- Row-Level Security (RLS) for collection writes (`owner-write-only` mode)
+- Publishable key write guardrails — `pk_live` writes now require RLS + user JWT
+- Automatic owner field injection on document create
+- Protection on `/api/data/users*` routes
+- Auth schema validation hardening: `email` and `password` required as string fields
+
+### Fixed
+- Owner mismatch blocking for write operations
+- Schema key normalization hardening (handles hidden/BOM character edge cases)
+
+---
+
+## [v0.3.0] - 2026-03-21
+
+### Added
+- NPM Workspaces monorepo structure with `apps/*` and `packages/*` directories
+- `@urbackend/common` shared package — Mongoose models, Express middlewares, Redis queues, DB configs
+- `dashboard-api` (Control Plane) — dedicated backend for admin dashboard
+- `public-api` (Data Plane) — scalable backend for project data routing
+- Concurrent dev mode via `npm run dev` at root
+- Full Docker Compose setup
+
+### Changed
+- Legacy monolithic `legacy-backend` deprecated and removed
+
+---
+
+## [v0.2.0] - 2026-03-07
+
+### Added
+- Bring Your Own Database (BYOD) — connect an external MongoDB URI to any project
+- Dual API key system: `pk_live_` (publishable) and `sk_live_` (secret)
+- CORS Allowed Domains — `pk_live` requests rejected from un-whitelisted origins
+- Dynamic Auth setup — Auth activation blocked until a valid `users` collection is defined
+- Brute-force protection via dedicated `authLimiter`
+- Deep schema nesting: `Object`, `Array`, and `Ref` (relational) types supported
+- Advanced query engine: filter operators, `sort`, and pagination
+- `docker-compose.yml` for full local self-hosting
+
+### Fixed
+- Double OTP issue during developer signups
+- Redis caching bug where raw Mongoose documents corrupted application state
+- Analytics visit counter now persists across server restarts
+
+### Security
+- Docker containers now run as non-root users
+- Internal database and cache ports fully isolated
+
+---
+
+## [v0.1.0] - 2026-01-08
+
+### Added
+- Instant NoSQL database — create collections and manage JSON data through a visual dashboard
+- Built-in authentication — signup, login (JWT), and profile management
+- Integrated cloud storage — file and image uploads via Supabase with public CDN links
+- Project dashboard — unified interface to manage multiple projects
+- Developer analytics — real-time API traffic and usage monitoring
+- API key-based access control
+
+---
+
+[v0.9.0]: https://github.com/geturbackend/urBackend/releases/tag/v0.9.0
+[v0.8.0]: https://github.com/geturbackend/urBackend/releases/tag/v0.8.0
+[v0.7.0]: https://github.com/geturbackend/urBackend/releases/tag/v0.7.0
+[v0.6.0]: https://github.com/geturbackend/urBackend/releases/tag/v0.6.0
+[v0.5.0]: https://github.com/geturbackend/urBackend/releases/tag/v0.5.0
+[v0.4.0]: https://github.com/geturbackend/urBackend/releases/tag/v0.4.0
+[v0.3.0]: https://github.com/geturbackend/urBackend/releases/tag/v0.3.0
+[v0.2.0]: https://github.com/geturbackend/urBackend/releases/tag/v0.2.0
+[v0.1.0]: https://github.com/geturbackend/urBackend/releases/tag/v0.1.0

@@ -5,19 +5,14 @@ on:
     branches:
       - main
       - master
-  pull_request:
-    types: [opened, reopened, synchronize]
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   update_release_draft:
-    permissions:
-      contents: write  # Required to create/update draft releases
-      pull-requests: read  # Required to read pull request labels
     runs-on: ubuntu-latest
     steps:
-      - uses: release-drafter/release-drafter@v6
+      - uses: release-drafter/release-drafter@6a93d829887aa2e0748befe2e808c66c0ec6e4c7
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
