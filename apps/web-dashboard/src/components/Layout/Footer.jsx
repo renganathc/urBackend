@@ -19,8 +19,11 @@ export default function Footer() {
                             The instant Backend-as-a-Service for frontend developers. Ship faster.
                         </p>
 
+                        <p style={{ color: '#C0C0C0', marginBottom: '0.5rem', maxWidth: '300px' }}>
+                            Stay up to Date by Subscribing to our Newsletter: 
+                        </p>
                         <div className="footer-input-wrapper">
-                            <input type="email" placeholder="Stay up to date" />
+                            <input type="email" placeholder="Enter your E-mail" />
                             <button><ArrowRight size={16} /></button>
                         </div>
                     </div>
@@ -50,7 +53,7 @@ export default function Footer() {
                         <a href="https://github.com/yash-pouranik/urBackend" target="_blank" className="social-icon"><Github size={20} /></a>
                     </div>
                     <div className="legal-links">
-                        <span>&copy; 2025 urBackend Inc.</span>
+                        <span>&copy; 2026 urBackend Inc.</span>
                     </div>
                 </div>
 
