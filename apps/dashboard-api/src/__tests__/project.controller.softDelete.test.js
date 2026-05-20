@@ -13,6 +13,7 @@ jest.mock('@urbackend/common', () => ({
     },
     getConnection: jest.fn().mockResolvedValue({}),
     getCompiledModel: jest.fn(() => mockModel),
+    enqueueCollectionCleanup: jest.fn().mockResolvedValue(true)
 }));
 
 const { deleteRow } = require('../controllers/project.controller');
@@ -72,7 +73,7 @@ describe('Soft Delete in dashboard project.controller', () => {
         expect(res.json).toHaveBeenCalledWith({ 
             success: true, 
             data: { id: '507f1f77bcf86cd799439011' }, 
-            message: "Document deleted successfully." 
+            message: "Document moved to trash" 
         });
         
         // Should not save project (to update databaseUsed) since it's a soft delete

@@ -8,7 +8,10 @@ const { validateData, validateUpdateData, aggregateSchema } = require("@urbacken
 const { performance } = require('perf_hooks');
 const { dispatchWebhooks } = require('../utils/webhookDispatcher');
 const { z } = require("zod");
-const { AppError } = require("@urbackend/common");
+const { 
+  AppError, 
+  enqueueCollectionCleanup 
+} = require("@urbackend/common");
 
 const isDebug = process.env.DEBUG === 'true';
 
@@ -54,7 +57,10 @@ module.exports.insertData = async (req, res) => {
 
     let docSize = 0;
     if (!project.resources.db.isExternal) {
-      docSize = Buffer.byteLength(JSON.stringify(safeData));
+      const docForSize = safeData._id
+        ? safeData
+        : { ...safeData, _id: new mongoose.Types.ObjectId() };
+      docSize = mongoose.mongo.BSON.calculateObjectSize(docForSize);
       if ((project.databaseUsed || 0) + docSize > project.databaseLimit) {
         return res.status(403).json({ error: "Database limit exceeded." });
       }
@@ -154,7 +160,12 @@ module.exports.insertData = async (req, res) => {
         // Prevent manual injection of soft-delete fields
         delete cleanData.isDeleted;
         delete cleanData.deletedAt;
-        validData.push(sanitize(cleanData));
+        
+        validData.push(sanitize({
+          ...cleanData,
+          isDeleted: false,
+          deletedAt: null
+        }));
       }
     });
 
@@ -589,6 +600,7 @@ module.exports.deleteSingleDoc = async (req, res) => {
 
     // We don't decrement databaseUsed here because the document still occupies space.
     // It will be decremented during hard delete in the background worker.
+    await enqueueCollectionCleanup(project._id, collectionName);
 
     dispatchWebhooks({
       projectId: project._id,

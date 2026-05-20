@@ -50,6 +50,7 @@ const {
 } = require("./queues/reliabilityAlertQueue");
 const {
   trashCleanupQueue,
+  enqueueCollectionCleanup,
   scheduleTrashCleanup,
   initTrashCleanupWorker,
 } = require("./queues/trashCleanupQueue");
@@ -211,6 +212,7 @@ module.exports = {
   recordFailedAttempt,
   clearLockout,
   trashCleanupQueue,
+  enqueueCollectionCleanup,
   scheduleTrashCleanup,
   initTrashCleanupWorker,
 };

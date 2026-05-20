@@ -37,6 +37,7 @@ const { getPublicIp } = require("@urbackend/common");
 const { clearCompiledModel } = require("@urbackend/common");
 const { createUniqueIndexes, ApiAnalytics, MailLog } = require("@urbackend/common");
 const { emitEvent } = require('../utils/emitEvent');
+const { enqueueCollectionCleanup } = require('@urbackend/common');
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
 const SAFETY_MAX_BYTES = 100 * 1024 * 1024;
 const CONFIRM_UPLOAD_SIZE_TOLERANCE_BYTES = 64;
@@ -976,8 +977,9 @@ module.exports.deleteRow = async (req, res) => {
 
     // We don't decrement databaseUsed here because the document still occupies space.
     // It will be decremented during hard delete in the background worker.
+    await enqueueCollectionCleanup(projectId, collectionName);
 
-    res.json({ success: true, data: { id: result._id }, message: "Document deleted successfully." });
+    res.json({ success: true, data: { id: result._id }, message: "Document moved to trash" });
   } catch (err) {
     console.error("Delete Error:", err);
     res.status(500).json({ error: err.message });

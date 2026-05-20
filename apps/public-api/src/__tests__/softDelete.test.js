@@ -18,7 +18,8 @@ jest.mock('@urbackend/common', () => ({
     QueryEngine: jest.fn(),
     validateData: jest.fn(),
     validateUpdateData: jest.fn(),
-    isValidId: () => true
+    isValidId: () => true,
+    enqueueCollectionCleanup: jest.fn().mockResolvedValue(true)
 }));
 
 const { deleteSingleDoc, getSingleDoc } = require('../controllers/data.controller');
