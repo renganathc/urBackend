@@ -152,6 +152,13 @@ export default function Database() {
     } catch { toast.error("Failed to delete document"); }
   };
 
+  const getCurlSnippet = () => {
+    if (!activeCollection) return '';
+    return activeCollection.rls?.enabled
+      ? `curl -X POST https://api.urbackend.com/api/data/${activeCollection.name} \\\n  -H "x-api-key: <YOUR_PUBLISHABLE_KEY>" \\\n  -H "Authorization: Bearer <USER_JWT>" \\\n  -H "Content-Type: application/json" \\\n  -d '{}'`
+      : `curl -X POST https://api.urbackend.com/api/data/${activeCollection.name} \\\n  -H "x-api-key: <YOUR_SECRET_KEY>" \\\n  -H "Content-Type: application/json" \\\n  -d '{}'`;
+  };
+
   return (
     <div className="db-layout" style={{ height: 'calc(100vh - var(--header-height))', display: 'flex', background: 'var(--color-bg-main)' }}>
       <DatabaseSidebar
@@ -218,8 +225,7 @@ export default function Database() {
                                 <span>Example POST Request</span>
                                 <button 
                                     onClick={() => { 
-                                        const snippet = `curl -X POST https://api.urbackend.com/api/data/${activeCollection.name} \\\n  -H "x-api-key: <YOUR_PUBLISHABLE_KEY>" \\\n  -H "Content-Type: application/json" \\\n  -d '{}'`;
-                                        navigator.clipboard.writeText(snippet); 
+                                        navigator.clipboard.writeText(getCurlSnippet()); 
                                         toast.success('Snippet copied!'); 
                                     }} 
                                     style={{ background: 'none', border: 'none', color: 'var(--color-primary)', cursor: 'pointer' }}
@@ -227,12 +233,22 @@ export default function Database() {
                                     Copy
                                 </button>
                             </div>
+                            {activeCollection?.rls?.enabled ? (
                             <pre style={{ margin: 0, fontFamily: 'monospace', fontSize: '0.85rem', color: '#e2e8f0', overflowX: 'auto', whiteSpace: 'pre-wrap' }}>
 <span style={{ color: '#f59e0b' }}>curl</span> -X POST https://api.urbackend.com/api/data/{activeCollection.name} \
   -H <span style={{ color: '#10b981' }}>"x-api-key: &lt;YOUR_PUBLISHABLE_KEY&gt;"</span> \
+  -H <span style={{ color: '#10b981' }}>"Authorization: Bearer &lt;USER_JWT&gt;"</span> \
   -H <span style={{ color: '#10b981' }}>"Content-Type: application/json"</span> \
   -d <span style={{ color: '#10b981' }}>'&#123;&#125;'</span>
                             </pre>
+                            ) : (
+                            <pre style={{ margin: 0, fontFamily: 'monospace', fontSize: '0.85rem', color: '#e2e8f0', overflowX: 'auto', whiteSpace: 'pre-wrap' }}>
+<span style={{ color: '#f59e0b' }}>curl</span> -X POST https://api.urbackend.com/api/data/{activeCollection.name} \
+  -H <span style={{ color: '#10b981' }}>"x-api-key: &lt;YOUR_SECRET_KEY&gt;"</span> \
+  -H <span style={{ color: '#10b981' }}>"Content-Type: application/json"</span> \
+  -d <span style={{ color: '#10b981' }}>'&#123;&#125;'</span>
+                            </pre>
+                            )}
                         </div>
                         <div style={{ marginTop: '1.5rem' }}>
                             <button className="btn btn-primary" onClick={() => setIsAddModalOpen(true)}>Add Record Manually</button>
