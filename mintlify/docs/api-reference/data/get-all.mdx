@@ -11,17 +11,17 @@ Returns a list of documents from the specified collection. Supports pagination, 
   `/api/data/users*` is blocked for all keys. Use `/api/userAuth/*` for user management.
 </Warning>
 
-### Required Header
+### Required header
 
 `x-api-key`: your `pk_live_…` or `sk_live_…` key.
 
-### Path Parameters
+### Path parameters
 
 <ParamField path="collectionName" type="string" required>
   The name of the collection to query (e.g., `posts`, `comments`, `inventory`).
 </ParamField>
 
-### Query Parameters
+### Query parameters
 
 <ParamField query="page" type="number">
   Page number for pagination. Defaults to `1`.
@@ -45,28 +45,48 @@ Returns a list of documents from the specified collection. Supports pagination, 
   If `true`, includes soft-deleted documents (`isDeleted: true`) in the response. Defaults to `false` (trashed documents are excluded by default).
 </ParamField>
 
-### RLS Behavior
+### RLS behavior
 
 If the collection has **RLS** enabled:
 
 - `public-read` mode: anyone can read all documents with a valid `x-api-key`.
 - `private` mode: requires `Authorization: Bearer <accessToken>` — only the owner's documents are returned.
 
-### Response Fields
+### Response fields
 
 <ResponseField name="success" type="boolean">
   `true` when the request succeeded.
 </ResponseField>
 
-<ResponseField name="data" type="array">
-  Array of document objects matching the query. Each document includes its `_id` and all stored fields.
+<ResponseField name="data" type="object">
+  Object containing the results and pagination metadata.
+  <Expandable title="properties">
+    <ResponseField name="items" type="array">
+      Array of document objects matching the query.
+    </ResponseField>
+    <ResponseField name="total" type="number">
+      Total number of documents matching the query (ignoring pagination).
+    </ResponseField>
+    <ResponseField name="page" type="number">
+      Current page number (present in offset-based pagination).
+    </ResponseField>
+    <ResponseField name="cursor" type="string">
+      Current cursor (present in cursor-based pagination).
+    </ResponseField>
+    <ResponseField name="nextCursor" type="string">
+      Cursor for the next page, or `null`.
+    </ResponseField>
+    <ResponseField name="limit" type="number">
+      Number of results per page.
+    </ResponseField>
+  </Expandable>
 </ResponseField>
 
 <ResponseField name="message" type="string">
   Human-readable status message.
 </ResponseField>
 
-### Code Examples
+### Code examples
 
 <CodeGroup>
 
@@ -88,8 +108,9 @@ const res = await fetch(
   }
 );
 
-const { success, data, message } = await res.json();
-// data is an array of matching documents
+const { data } = await res.json();
+// data.items contains the array of matching documents
+// data.total contains the total count
 ```
 
 ```bash curl
@@ -108,29 +129,34 @@ const res = await fetch('https://api.ub.bitbros.in/api/data/notes', {
 
 </CodeGroup>
 
-### Success Response
+### Success response
 
 ```json
 {
   "success": true,
-  "data": [
-    {
-      "_id": "64fd1234abcd5678ef901234",
-      "title": "Why BaaS is the future",
-      "status": "published",
-      "isDeleted": false,
-      "deletedAt": null,
-      "createdAt": "2024-01-15T10:30:00.000Z"
-    },
-    {
-      "_id": "64fd5678abcd1234ef905678",
-      "title": "Getting started with urBackend",
-      "status": "published",
-      "isDeleted": true,
-      "deletedAt": "2026-05-20T10:30:00.000Z",
-      "createdAt": "2024-01-14T08:00:00.000Z"
-    }
-  ],
+  "data": {
+    "items": [
+      {
+        "_id": "64fd1234abcd5678ef901234",
+        "title": "Why BaaS is the future",
+        "status": "published",
+        "isDeleted": false,
+        "deletedAt": null,
+        "createdAt": "2024-01-15T10:30:00.000Z"
+      },
+      {
+        "_id": "64fd5678abcd1234ef905678",
+        "title": "Getting started with urBackend",
+        "status": "published",
+        "isDeleted": true,
+        "deletedAt": "2026-05-20T10:30:00.000Z",
+        "createdAt": "2024-01-14T08:00:00.000Z"
+      }
+    ],
+    "total": 42,
+    "page": 1,
+    "limit": 10
+  },
   "message": "Data fetched successfully"
 }
 ```

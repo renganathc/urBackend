@@ -7,23 +7,23 @@ description: "Execute MongoDB aggregation pipelines on your collection."
 
 Runs a MongoDB aggregation pipeline on the specified collection. This allows for complex data processing, grouping, and transformations.
 
-### Required Header
+### Required header
 
 `x-api-key`: your `pk_live_…` or `sk_live_…` key.
 
-### Path Parameters
+### Path parameters
 
 <ParamField path="collectionName" type="string" required>
   The name of the collection to aggregate.
 </ParamField>
 
-### Query Parameters
+### Query parameters
 
 <ParamField query="include_deleted" type="boolean">
   If `true`, includes soft-deleted documents (where `isDeleted: true`) in the aggregation. Defaults to `false`.
 </ParamField>
 
-### Request Body
+### Request body
 
 <ParamField body="pipeline" type="array" required>
   An array of aggregation stages following the standard MongoDB aggregation pipeline syntax.
@@ -33,11 +33,11 @@ Runs a MongoDB aggregation pipeline on the specified collection. This allows for
   For security reasons, certain stages like `$out` and `$merge` are blocked.
 </Note>
 
-### RLS Behavior
+### RLS behavior
 
-If Row-Level Security (RLS) is enabled, urBackend automatically injects a `$match` stage at the beginning of your pipeline (or after `$geoNear` / `$search` if present) to ensure users only aggregate data they have access to.
+If Row-Level Security (RLS) is enabled, urBackend automatically injects a `$match` stage at the beginning of your pipeline (or after `$geoNear` / `$search` if present). This ensures users only aggregate data they have access to.
 
-### Response Fields
+### Response fields
 
 <ResponseField name="success" type="boolean">
   `true` when the aggregation was executed successfully.
@@ -51,7 +51,7 @@ If Row-Level Security (RLS) is enabled, urBackend automatically injects a `$matc
   Human-readable status message.
 </ResponseField>
 
-### Code Examples
+### Code examples
 
 <CodeGroup>
 
@@ -90,7 +90,7 @@ curl -X POST "https://api.ub.bitbros.in/api/data/orders/aggregate?include_delete
 
 </CodeGroup>
 
-### Success Response
+### Success response
 
 ```json
 {

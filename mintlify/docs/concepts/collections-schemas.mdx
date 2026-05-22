@@ -54,15 +54,10 @@ Sending the wrong type returns a `400` validation error.
 
 ## System-managed fields
 
-urBackend automatically adds the following fields to all collections to manage the soft delete lifecycle:
-
-- `isDeleted` (Boolean, default `false`) — Indicates whether a document is in the trash.
-- `deletedAt` (Date, default `null`) — Timestamp of when the document was soft-deleted.
-
-These fields are strictly managed by the system. They cannot be set, modified, or manually filtered by clients directly.
+urBackend adds the `isDeleted` (Boolean, default `false`) and `deletedAt` (Date, default `null`) fields to every collection to manage soft deletes. The system strictly manages these fields so you cannot set, modify, or filter by them directly from the client.
 
 <Note>
-  Documents with `isDeleted: true` are excluded from normal read queries by default.
+  Documents with `isDeleted: true` are excluded from normal read queries by default. To view them, you must use the `include_deleted=true` query parameter.
 </Note>
 
 ## Defining field constraints
