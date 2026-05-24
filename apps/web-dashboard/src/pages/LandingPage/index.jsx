@@ -89,7 +89,7 @@ const INITIAL_FEATURES = [
         color: 'red',
         accentColor: '#FF5F56',
         type: 'tags',
-        bullets: ['JWT Authentication', 'Role-Based Access', 'Lightweight']
+        bullets: ['JWT Authentication', 'Lightweight']
     }
 ];
 
