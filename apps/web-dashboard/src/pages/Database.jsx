@@ -148,6 +148,10 @@ export default function Database() {
     } catch { toast.error("Failed to save RLS"); return false; }
   };
 
+  /**
+   * Deletes a record from the active collection.
+   * @param {string} id - The ID of the record to delete.
+   */
   const handleDeleteRecord = async (id) => {
     try {
       await api.delete(`/api/projects/${projectId}/collections/${activeCollection.name}/data/${id}`);
@@ -156,6 +160,10 @@ export default function Database() {
     } catch { toast.error("Failed to delete document"); }
   };
 
+  /**
+   * Restores a soft-deleted record from the trash for the active collection.
+   * @param {string} id - The ID of the record to recover.
+   */
   const handleRecoverRecord = async (id) => {
     try {
       await api.patch(`/api/projects/${projectId}/collections/${activeCollection.name}/data/${id}/recover`);
@@ -168,7 +176,7 @@ export default function Database() {
       toast.success("Document restored successfully");
     } catch (err) {
       const errMsg = err.response?.data?.message || err.response?.data?.error || err.message;
-      toast.error("Failed to restore document: " + errMsg);
+      toast.error(errMsg ? `Failed to restore document: ${errMsg}` : "Failed to restore document");
     }
   };
 

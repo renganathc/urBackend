@@ -9,6 +9,8 @@ const mockModel = {
     findOne: mockFindOne,
 };
 
+const mongoose = require("mongoose");
+
 jest.mock('@urbackend/common', () => ({
     sanitize: (v) => v,
     Project: {},
@@ -18,8 +20,14 @@ jest.mock('@urbackend/common', () => ({
     QueryEngine: jest.fn(),
     validateData: jest.fn(),
     validateUpdateData: jest.fn(),
-    isValidId: () => true,
-    enqueueCollectionCleanup: jest.fn().mockResolvedValue(true)
+    isValidId: (id) => mongoose.Types.ObjectId.isValid(id),
+    enqueueCollectionCleanup: jest.fn().mockResolvedValue(true),
+    AppError: class AppError extends Error {
+        constructor(statusCode, message) {
+            super(message);
+            this.statusCode = statusCode;
+        }
+    }
 }));
 
 const { deleteSingleDoc, recoverSingleDoc } = require('../controllers/data.controller');
@@ -126,14 +134,49 @@ describe('Soft Delete in data.controller', () => {
     test('recoverSingleDoc returns 404 if document is not in trash', async () => {
         const req = makeReq();
         const res = makeRes();
+        const next = jest.fn();
 
         mockFindOneAndUpdate.mockReturnValue({
             lean: jest.fn().mockResolvedValue(null)
         });
 
-        await recoverSingleDoc(req, res);
+        await recoverSingleDoc(req, res, next);
 
-        expect(res.status).toHaveBeenCalledWith(404);
-        expect(res.json).toHaveBeenCalledWith({ error: 'Document not found or not in trash.' });
+        expect(next).toHaveBeenCalledWith(expect.objectContaining({
+            statusCode: 404,
+            message: "Document not found or not in trash."
+        }));
+    });
+
+    test('recoverSingleDoc returns 409 if document restoration causes a unique field conflict', async () => {
+        const req = makeReq();
+        const res = makeRes();
+        const next = jest.fn();
+
+        const error = new Error('Duplicate key');
+        error.code = 11000;
+        mockFindOneAndUpdate.mockReturnValue({
+            lean: jest.fn().mockRejectedValue(error)
+        });
+
+        await recoverSingleDoc(req, res, next);
+
+        expect(next).toHaveBeenCalledWith(expect.objectContaining({
+            statusCode: 409,
+            message: expect.stringContaining("unique field value conflicts")
+        }));
+    });
+
+    test('recoverSingleDoc returns 400 if ID is invalid', async () => {
+        const req = makeReq({ params: { collectionName: 'posts', id: 'invalid-id' } });
+        const res = makeRes();
+        const next = jest.fn();
+
+        await recoverSingleDoc(req, res, next);
+
+        expect(next).toHaveBeenCalledWith(expect.objectContaining({
+            statusCode: 400,
+            message: "Invalid document ID format."
+        }));
     });
 });

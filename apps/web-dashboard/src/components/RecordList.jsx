@@ -35,6 +35,11 @@ export default function RecordList({ data, activeCollection, onView, onRecover }
         });
     };
 
+    /**
+     * Generates a tooltip message for a deleted record, including deletion date and time remaining.
+     * @param {string|Date} deletedAt - The timestamp when the record was deleted.
+     * @returns {string} The formatted tooltip message.
+     */
     const getDeletionTooltip = (deletedAt) => {
         if (!deletedAt || !now) return "";
         const daysRemaining = 30 - Math.floor((now - new Date(deletedAt).getTime()) / (1000 * 60 * 60 * 24));
@@ -93,6 +98,7 @@ export default function RecordList({ data, activeCollection, onView, onRecover }
                                     <button 
                                         className="btn-icon"
                                         title={getDeletionTooltip(record.deletedAt)}
+                                        aria-label={`Recover record ${record._id}`}
                                         onClick={(e) => {
                                             e.stopPropagation();
                                             onRecover(record._id);
@@ -101,7 +107,7 @@ export default function RecordList({ data, activeCollection, onView, onRecover }
                                         <RotateCcw size={18} color="var(--color-primary)" />
                                     </button>
                                 ) : (
-                                    <button className="btn-icon">
+                                    <button className="btn-icon" aria-label={`Open record ${record._id}`}>
                                         <ArrowRight size={18} />
                                     </button>
                                 )}

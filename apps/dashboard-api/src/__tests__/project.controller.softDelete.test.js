@@ -13,7 +13,13 @@ jest.mock('@urbackend/common', () => ({
     },
     getConnection: jest.fn().mockResolvedValue({}),
     getCompiledModel: jest.fn(() => mockModel),
-    enqueueCollectionCleanup: jest.fn().mockResolvedValue(true)
+    enqueueCollectionCleanup: jest.fn().mockResolvedValue(true),
+    AppError: class AppError extends Error {
+        constructor(statusCode, message) {
+            super(message);
+            this.statusCode = statusCode;
+        }
+    }
 }));
 
 const { deleteRow, recoverRow } = require('../controllers/project.controller');
@@ -168,6 +174,56 @@ describe('Soft Delete in dashboard project.controller', () => {
         await recoverRow(req, res);
 
         expect(res.status).toHaveBeenCalledWith(404);
-        expect(res.json).toHaveBeenCalledWith({ error: 'Document not found or not in trash.' });
+        expect(res.json).toHaveBeenCalledWith({ 
+            success: false, 
+            data: {}, 
+            message: "Document not found or not in trash." 
+        });
+    });
+
+    test('recoverRow returns 409 if document restoration causes a unique field conflict', async () => {
+        const req = makeReq();
+        const res = makeRes();
+        const next = jest.fn();
+
+        const project = {
+            _id: 'proj_1',
+            resources: { db: { isExternal: false } },
+            collections: [{ name: 'posts', model: [] }]
+        };
+        mockFindOne.mockReturnValue({
+            lean: jest.fn().mockResolvedValue(project)
+        });
+
+        const error = new Error('Duplicate key');
+        error.code = 11000;
+        mockFindOneAndUpdate.mockReturnValue({
+            lean: jest.fn().mockRejectedValue(error)
+        });
+
+        await recoverRow(req, res, next);
+
+        expect(next).toHaveBeenCalledWith(expect.objectContaining({
+            statusCode: 409,
+            message: expect.stringContaining("unique field value conflicts")
+        }));
+    });
+
+    test('recoverRow returns 400 if document ID is invalid', async () => {
+        const req = {
+            params: { projectId: 'proj_1', collectionName: 'posts', id: 'invalid-id' },
+            user: { _id: 'user_1' }
+        };
+        const res = makeRes();
+        const next = jest.fn();
+
+        await recoverRow(req, res, next);
+
+        expect(res.status).toHaveBeenCalledWith(400);
+        expect(res.json).toHaveBeenCalledWith({
+            success: false,
+            data: {},
+            message: "Invalid id"
+        });
     });
 });

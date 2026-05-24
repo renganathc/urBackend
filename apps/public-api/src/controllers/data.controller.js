@@ -561,7 +561,11 @@ module.exports.updateSingleData = async (req, res) => {
   }
 };
 
-// DELETE DATA
+/**
+ * Soft-deletes a single document by its ID (moves it to trash).
+ * @param {import('express').Request} req - Express request object.
+ * @param {import('express').Response} res - Express response object.
+ */
 module.exports.deleteSingleDoc = async (req, res) => {
   try {
     const { collectionName, id } = req.params;
@@ -623,17 +627,27 @@ module.exports.deleteSingleDoc = async (req, res) => {
   }
 };
 
-// Recover a single document from trash
-module.exports.recoverSingleDoc = async (req, res) => {
+/**
+ * Recovers a single soft-deleted document from trash.
+ * @param {import('express').Request} req - Express request object.
+ * @param {import('express').Response} res - Express response object.
+ * @param {import('express').NextFunction} next - Express next function.
+ */
+module.exports.recoverSingleDoc = async (req, res, next) => {
   try {
     const { collectionName, id } = req.params;
     const project = req.project;
 
+    if (!isValidId(id)) {
+      return next(new AppError(400, "Invalid document ID format."));
+    }
+
     const collectionConfig = project.collections.find(
       (c) => c.name === collectionName,
     );
-    if (!collectionConfig)
-      return res.status(404).json({ error: "Collection not found" });
+    if (!collectionConfig) {
+      return next(new AppError(404, "Collection not found"));
+    }
 
     const connection = await getConnection(project._id);
     const Model = getCompiledModel(
@@ -654,8 +668,9 @@ module.exports.recoverSingleDoc = async (req, res) => {
       { new: true }
     ).lean();
 
-    if (!result)
-      return res.status(404).json({ error: "Document not found or not in trash." });
+    if (!result) {
+      return next(new AppError(404, "Document not found or not in trash."));
+    }
 
     dispatchWebhooks({
       projectId: project._id,
@@ -671,12 +686,8 @@ module.exports.recoverSingleDoc = async (req, res) => {
       console.error(err);
     }
     if (isDuplicateKeyError(err)) {
-      return res.status(409).json({
-        success: false,
-        data: {},
-        message: "Cannot restore document: a unique field value conflicts with an existing active document."
-      });
+      return next(new AppError(409, "Cannot restore document: a unique field value conflicts with an existing active document."));
     }
-    res.status(500).json({ error: err.message });
+    return next(new AppError(500, "Failed to recover document."));
   }
 };
