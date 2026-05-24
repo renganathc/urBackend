@@ -622,3 +622,61 @@ module.exports.deleteSingleDoc = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
+// Recover a single document from trash
+module.exports.recoverSingleDoc = async (req, res) => {
+  try {
+    const { collectionName, id } = req.params;
+    const project = req.project;
+
+    const collectionConfig = project.collections.find(
+      (c) => c.name === collectionName,
+    );
+    if (!collectionConfig)
+      return res.status(404).json({ error: "Collection not found" });
+
+    const connection = await getConnection(project._id);
+    const Model = getCompiledModel(
+      connection,
+      collectionConfig,
+      project._id,
+      project.resources.db.isExternal,
+    );
+
+    const result = await Model.findOneAndUpdate(
+      { _id: id, isDeleted: true, ...(req.rlsFilter || {}) },
+      { 
+        $set: { 
+          isDeleted: false, 
+          deletedAt: null 
+        } 
+      },
+      { new: true }
+    ).lean();
+
+    if (!result)
+      return res.status(404).json({ error: "Document not found or not in trash." });
+
+    dispatchWebhooks({
+      projectId: project._id,
+      collection: collectionName,
+      action: 'update',
+      document: result,
+      documentId: id,
+    });
+
+    res.json({ success: true, data: result, message: "Document recovered from trash" });
+  } catch (err) {
+    if (process.env.NODE_ENV !== 'test') {
+      console.error(err);
+    }
+    if (isDuplicateKeyError(err)) {
+      return res.status(409).json({
+        success: false,
+        data: {},
+        message: "Cannot restore document: a unique field value conflicts with an existing active document."
+      });
+    }
+    res.status(500).json({ error: err.message });
+  }
+};

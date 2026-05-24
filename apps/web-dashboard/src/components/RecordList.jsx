@@ -1,16 +1,44 @@
 import React from "react";
-import { List, MoreHorizontal, Calendar, ArrowRight } from "lucide-react";
+import { List, MoreHorizontal, Calendar, ArrowRight, RotateCcw } from "lucide-react";
 
-export default function RecordList({ data, activeCollection, onView }) {
+const formatDate = (val) => {
+    if (!val || typeof val !== 'string') return val;
+    if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/.test(val)) return val;
+    const date = new Date(val);
+    if (isNaN(date.getTime())) return val;
+    return date.toLocaleString('en-GB', {
+        day: 'numeric',
+        month: 'numeric',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: true
+    }).toLowerCase();
+};
+
+export default function RecordList({ data, activeCollection, onView, onRecover }) {
+    const [now] = React.useState(() => Date.now());
+
+
     // Helper to get important fields (skip _id and system fields)
     const getPreviewFields = (record) => {
         if (!activeCollection?.model) return [];
         // Take first 3 fields from model
-        return activeCollection.model.slice(0, 3).map(field => ({
-            key: field.key,
-            value: record[field.key],
-            type: field.type
-        }));
+        return activeCollection.model.slice(0, 3).map(field => {
+            const val = record[field.key];
+            return {
+                key: field.key,
+                value: field.type === 'Date' ? formatDate(val) : (typeof val === 'string' ? formatDate(val) : val),
+                type: field.type
+            };
+        });
+    };
+
+    const getDeletionTooltip = (deletedAt) => {
+        if (!deletedAt || !now) return "";
+        const daysRemaining = 30 - Math.floor((now - new Date(deletedAt).getTime()) / (1000 * 60 * 60 * 24));
+        return `Deleted on: ${formatDate(deletedAt)} (${daysRemaining} days until permanent deletion)`;
     };
 
     return (
@@ -22,14 +50,26 @@ export default function RecordList({ data, activeCollection, onView }) {
                     return (
                         <div
                             key={record._id}
-                            className="record-card glass-panel"
+                            className={`record-card glass-panel ${record.isDeleted ? 'record-deleted' : ''}`}
                             aria-label={`View details for record ${record._id}`}
                             onClick={() => onView(record)}
+                            style={{
+                                opacity: record.isDeleted ? 0.6 : 1,
+                                background: record.isDeleted ? 'rgba(239, 68, 68, 0.03)' : 'rgba(255,255,255,0.02)',
+                                borderLeft: record.isDeleted ? '3px solid var(--color-danger)' : '1px solid var(--color-border)'
+                            }}
                         >
                             <div className="record-main-info">
                                 <div className="record-header">
                                     <span className="record-index">#{index + 1}</span>
                                     <span className="record-id font-mono">{record._id.substring(0, 8)}...</span>
+                                    {record.isDeleted && (
+                                        <span className="badge badge-danger" 
+                                              title={getDeletionTooltip(record.deletedAt)}
+                                              style={{ fontSize: '0.65rem', padding: '2px 6px', borderRadius: '4px', cursor: 'default' }}>
+                                            DELETED
+                                        </span>
+                                    )}
                                 </div>
 
                                 <div className="record-preview-grid">
@@ -49,9 +89,22 @@ export default function RecordList({ data, activeCollection, onView }) {
                             </div>
 
                             <div className="record-actions">
-                                <button className="btn-icon">
-                                    <ArrowRight size={18} />
-                                </button>
+                                {record.isDeleted ? (
+                                    <button 
+                                        className="btn-icon"
+                                        title={getDeletionTooltip(record.deletedAt)}
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            onRecover(record._id);
+                                        }}
+                                    >
+                                        <RotateCcw size={18} color="var(--color-primary)" />
+                                    </button>
+                                ) : (
+                                    <button className="btn-icon">
+                                        <ArrowRight size={18} />
+                                    </button>
+                                )}
                             </div>
                         </div>
                     );

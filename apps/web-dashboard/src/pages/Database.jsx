@@ -156,6 +156,22 @@ export default function Database() {
     } catch { toast.error("Failed to delete document"); }
   };
 
+  const handleRecoverRecord = async (id) => {
+    try {
+      await api.patch(`/api/projects/${projectId}/collections/${activeCollection.name}/data/${id}/recover`);
+      
+      // Inline update: set isDeleted to false and clear deletedAt
+      setData(prev => prev.map(item => 
+        item._id === id ? { ...item, isDeleted: false, deletedAt: null } : item
+      ));
+      
+      toast.success("Document restored successfully");
+    } catch (err) {
+      const errMsg = err.response?.data?.message || err.response?.data?.error || err.message;
+      toast.error("Failed to restore document: " + errMsg);
+    }
+  };
+
   /**
    * Generates an RLS-aware cURL snippet for the active collection.
    * Uses the secret key if RLS is disabled, or the publishable key with a JWT if RLS is enabled.
@@ -271,9 +287,21 @@ export default function Database() {
                     </div>
                   </div>
                 ) : viewMode === "list" ? (
-                  <RecordList data={data} activeCollection={activeCollection} onView={setSelectedRecord} />
+                  <RecordList 
+                    data={data} 
+                    activeCollection={activeCollection} 
+                    onView={setSelectedRecord} 
+                    onRecover={handleRecoverRecord}
+                  />
                 ) : viewMode === "table" ? (
-                  <CollectionTable data={data} activeCollection={activeCollection} onDelete={(id) => { setSelectedId(id); setShowModal(true); }} onView={setSelectedRecord} onEdit={(rec) => { if (activeCollection?.name === 'users') return; setEditingRecord(rec); setIsAddModalOpen(true); }} />
+                  <CollectionTable 
+                    data={data} 
+                    activeCollection={activeCollection} 
+                    onDelete={(id) => { setSelectedId(id); setShowModal(true); }} 
+                    onView={setSelectedRecord} 
+                    onEdit={(rec) => { if (activeCollection?.name === 'users') return; setEditingRecord(rec); setIsAddModalOpen(true); }} 
+                    onRecover={handleRecoverRecord}
+                  />
                 ) : (
                   <div style={{ height: '100%', overflow: 'auto', padding: '1.5rem', background: '#050505', color: 'var(--color-primary)', fontFamily: 'monospace', fontSize: '0.8rem' }}>
                     <pre>{JSON.stringify(data, null, 2)}</pre>
@@ -304,13 +332,12 @@ export default function Database() {
         )}
       </main>
 
-      {/* RowDetailDrawer: hide Edit for users collection */}
       <RowDetailDrawer
         isOpen={!!selectedRecord}
         onClose={() => setSelectedRecord(null)}
         record={selectedRecord}
         fields={activeCollection?.model || []}
-        onEdit={activeCollection?.name === 'users' ? null : (rec) => { setEditingRecord(rec); setIsAddModalOpen(true); }}
+        onEdit={(activeCollection?.name === 'users' || selectedRecord?.isDeleted) ? null : (rec) => { setEditingRecord(rec); setIsAddModalOpen(true); }}
       />
       
       {isAddModalOpen && (

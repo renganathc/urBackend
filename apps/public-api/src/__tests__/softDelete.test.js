@@ -22,7 +22,7 @@ jest.mock('@urbackend/common', () => ({
     enqueueCollectionCleanup: jest.fn().mockResolvedValue(true)
 }));
 
-const { deleteSingleDoc, getSingleDoc } = require('../controllers/data.controller');
+const { deleteSingleDoc, recoverSingleDoc } = require('../controllers/data.controller');
 
 function makeReq(overrides = {}) {
     return {
@@ -95,5 +95,45 @@ describe('Soft Delete in data.controller', () => {
 
         expect(res.status).toHaveBeenCalledWith(404);
         expect(res.json).toHaveBeenCalledWith({ error: 'Document not found.' });
+    });
+
+    test('recoverSingleDoc restores a soft-deleted document', async () => {
+        const req = makeReq();
+        const res = makeRes();
+
+        const restoredDoc = { _id: '507f1f77bcf86cd799439011', isDeleted: false, deletedAt: null };
+        mockFindOneAndUpdate.mockReturnValue({
+            lean: jest.fn().mockResolvedValue(restoredDoc)
+        });
+
+        await recoverSingleDoc(req, res);
+
+        expect(mockFindOneAndUpdate).toHaveBeenCalledWith(
+            expect.objectContaining({ _id: '507f1f77bcf86cd799439011', isDeleted: true }),
+            expect.objectContaining({
+                $set: { isDeleted: false, deletedAt: null }
+            }),
+            { new: true }
+        );
+
+        expect(res.json).toHaveBeenCalledWith({ 
+            success: true, 
+            data: restoredDoc, 
+            message: "Document recovered from trash" 
+        });
+    });
+
+    test('recoverSingleDoc returns 404 if document is not in trash', async () => {
+        const req = makeReq();
+        const res = makeRes();
+
+        mockFindOneAndUpdate.mockReturnValue({
+            lean: jest.fn().mockResolvedValue(null)
+        });
+
+        await recoverSingleDoc(req, res);
+
+        expect(res.status).toHaveBeenCalledWith(404);
+        expect(res.json).toHaveBeenCalledWith({ error: 'Document not found or not in trash.' });
     });
 });

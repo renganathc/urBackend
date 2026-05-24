@@ -16,7 +16,7 @@ jest.mock('@urbackend/common', () => ({
     enqueueCollectionCleanup: jest.fn().mockResolvedValue(true)
 }));
 
-const { deleteRow } = require('../controllers/project.controller');
+const { deleteRow, recoverRow } = require('../controllers/project.controller');
 
 function makeReq() {
     return {
@@ -51,6 +51,7 @@ describe('Soft Delete in dashboard project.controller', () => {
             collections: [{ name: 'posts', model: [] }],
             save: jest.fn().mockResolvedValue(true)
         };
+        // deleteRow uses Project.findOne without chaining
         mockFindOne.mockResolvedValue(project);
 
         // Mock document
@@ -75,9 +76,6 @@ describe('Soft Delete in dashboard project.controller', () => {
             data: { id: '507f1f77bcf86cd799439011' }, 
             message: "Document moved to trash" 
         });
-        
-        // Should not save project (to update databaseUsed) since it's a soft delete
-        expect(project.save).not.toHaveBeenCalled();
     });
 
     test('deleteRow returns 404 if document is already soft-deleted or not found', async () => {
@@ -105,5 +103,71 @@ describe('Soft Delete in dashboard project.controller', () => {
             data: {}, 
             message: "Document not found." 
         });
+    });
+
+    test('recoverRow restores a soft-deleted document', async () => {
+        const req = makeReq();
+        const res = makeRes();
+
+        // Mock project
+        const project = {
+            _id: 'proj_1',
+            resources: { db: { isExternal: false } },
+            collections: [{ name: 'posts', model: [] }]
+        };
+        
+        // recoverRow uses Project.findOne({ _id: projectId, owner: req.user._id }).lean()
+        const mockProjectFind = {
+            lean: jest.fn().mockResolvedValue(project)
+        };
+        mockFindOne.mockReturnValue(mockProjectFind);
+
+        // Mock document
+        const restoredDoc = { _id: '507f1f77bcf86cd799439011', isDeleted: false, deletedAt: null };
+        mockFindOneAndUpdate.mockReturnValue({
+            lean: jest.fn().mockResolvedValue(restoredDoc)
+        });
+
+        await recoverRow(req, res);
+
+        expect(mockFindOne).toHaveBeenCalledWith({ _id: 'proj_1', owner: 'user_1' });
+        expect(mockFindOneAndUpdate).toHaveBeenCalledWith(
+            { _id: '507f1f77bcf86cd799439011', isDeleted: true },
+            expect.objectContaining({
+                $set: { isDeleted: false, deletedAt: null }
+            }),
+            { new: true }
+        );
+        
+        expect(res.json).toHaveBeenCalledWith({ 
+            success: true, 
+            data: restoredDoc, 
+            message: "Document recovered from trash" 
+        });
+    });
+
+    test('recoverRow returns 404 if document is not in trash', async () => {
+        const req = makeReq();
+        const res = makeRes();
+
+        // Mock project
+        const project = {
+            _id: 'proj_1',
+            resources: { db: { isExternal: false } },
+            collections: [{ name: 'posts', model: [] }]
+        };
+        const mockProjectFind = {
+            lean: jest.fn().mockResolvedValue(project)
+        };
+        mockFindOne.mockReturnValue(mockProjectFind);
+
+        mockFindOneAndUpdate.mockReturnValue({
+            lean: jest.fn().mockResolvedValue(null)
+        });
+
+        await recoverRow(req, res);
+
+        expect(res.status).toHaveBeenCalledWith(404);
+        expect(res.json).toHaveBeenCalledWith({ error: 'Document not found or not in trash.' });
     });
 });

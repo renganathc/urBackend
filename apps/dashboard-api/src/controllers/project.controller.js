@@ -990,6 +990,58 @@ module.exports.deleteRow = async (req, res) => {
   }
 };
 
+module.exports.recoverRow = async (req, res) => {
+  try {
+    const { projectId, collectionName, id } = req.params;
+
+    const project = await Project.findOne({
+      _id: projectId,
+      owner: req.user._id,
+    }).lean();
+    if (!project) return res.status(404).json({ error: "Project not found" });
+
+    const collectionConfig = project.collections.find(
+      (c) => c.name === collectionName,
+    );
+    if (!collectionConfig)
+      return res.status(404).json({ error: "Collection not found" });
+
+    const connection = await getConnection(projectId);
+    const Model = getCompiledModel(
+      connection,
+      collectionConfig,
+      projectId,
+      project.resources.db.isExternal,
+    );
+
+    const result = await Model.findOneAndUpdate(
+      { _id: id, isDeleted: true },
+      { 
+        $set: { 
+          isDeleted: false, 
+          deletedAt: null 
+        } 
+      },
+      { new: true }
+    ).lean();
+
+    if (!result)
+      return res.status(404).json({ error: "Document not found or not in trash." });
+
+    res.json({ success: true, data: result, message: "Document recovered from trash" });
+  } catch (err) {
+    console.error("Recover Error:", err);
+    if (err && err.code === 11000) {
+      return res.status(409).json({
+        success: false,
+        data: {},
+        message: "Cannot restore document: a unique field value conflicts with an existing active document."
+      });
+    }
+    res.status(500).json({ error: err.message });
+  }
+};
+
 module.exports.editRow = async (req, res) => {
   try {
     const { projectId, collectionName, id } = req.params;
