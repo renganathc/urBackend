@@ -55,7 +55,7 @@ const formatDate = (val) => {
 
 const getDeletionTooltip = (deletedAt, now) => {
     if (!deletedAt || !now) return "";
-    const daysRemaining = 30 - Math.floor((now - new Date(deletedAt).getTime()) / (1000 * 60 * 60 * 24));
+    const daysRemaining = Math.max(0, 30 - Math.floor((now - new Date(deletedAt).getTime()) / (1000 * 60 * 60 * 24)));
     return `Deleted on: ${formatDate(deletedAt)} (${daysRemaining} days until permanent deletion)`;
 };
 

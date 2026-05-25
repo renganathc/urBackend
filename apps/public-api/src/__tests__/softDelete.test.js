@@ -11,25 +11,28 @@ const mockModel = {
 
 const mongoose = require("mongoose");
 
-jest.mock('@urbackend/common', () => ({
-    sanitize: (v) => v,
-    Project: {},
-    getConnection: jest.fn().mockResolvedValue({}),
-    getCompiledModel: jest.fn(() => mockModel),
-    dispatchWebhooks: jest.fn(),
-    QueryEngine: jest.fn(),
-    validateData: jest.fn(),
-    validateUpdateData: jest.fn(),
-    isValidId: (id) => mongoose.Types.ObjectId.isValid(id),
-    enqueueCollectionCleanup: jest.fn().mockResolvedValue(true),
-    syncCollectionCleanup: jest.fn().mockResolvedValue(true),
-    AppError: class AppError extends Error {
-        constructor(statusCode, message) {
-            super(message);
-            this.statusCode = statusCode;
+jest.mock('@urbackend/common', () => {
+    const mongoose = require("mongoose");
+    return {
+        sanitize: (v) => v,
+        Project: {},
+        getConnection: jest.fn().mockResolvedValue({}),
+        getCompiledModel: jest.fn(() => mockModel),
+        dispatchWebhooks: jest.fn(),
+        QueryEngine: jest.fn(),
+        validateData: jest.fn(),
+        validateUpdateData: jest.fn(),
+        isValidId: (id) => mongoose.Types.ObjectId.isValid(id),
+        enqueueCollectionCleanup: jest.fn().mockResolvedValue(true),
+        syncCollectionCleanup: jest.fn().mockResolvedValue(true),
+        AppError: class AppError extends Error {
+            constructor(statusCode, message) {
+                super(message);
+                this.statusCode = statusCode;
+            }
         }
-    }
-}));
+    };
+});
 
 const { deleteSingleDoc, recoverSingleDoc } = require('../controllers/data.controller');
 

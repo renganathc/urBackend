@@ -943,6 +943,10 @@ module.exports.deleteRow = async (req, res, next) => {
   try {
     const { projectId, collectionName, id } = req.params;
 
+    if (!mongoose.isValidObjectId(id)) {
+      return next(new AppError(400, "Invalid document ID format."));
+    }
+
     const project = await Project.findOne({
       _id: projectId,
       owner: req.user._id,
