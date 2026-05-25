@@ -10,17 +10,24 @@ const queryBuilder = async (req, res, next) => {
         const { projectId } = req.params;
         const { collectionName, prompt } = req.body;
 
-        if (!collectionName || !prompt) {
+        if (typeof collectionName !== 'string' || typeof prompt !== 'string') {
+            throw new AppError(400, "Collection name and prompt must be strings");
+        }
+
+        const safeCollectionName = collectionName.trim();
+        const safePrompt = prompt.trim();
+
+        if (!safeCollectionName || !safePrompt) {
             throw new AppError(400, "Collection name and prompt are required");
         }
 
-        if (collectionName === 'users') {
+        if (safeCollectionName === 'users') {
             throw new AppError(403, "Cannot query the users collection via AI");
         }
 
         // 1. Fetch the project and specifically the requested collection schema
         const project = await Project.findOne(
-            { _id: projectId, owner: req.user._id, "collections.name": collectionName },
+            { _id: projectId, owner: req.user._id, "collections.name": safeCollectionName },
             { "collections.$": 1 }
         );
 
@@ -46,7 +53,7 @@ const queryBuilder = async (req, res, next) => {
 
         // 3. Forward request to Python Service
         const aiResponse = await forwardToPythonService('/ai/query-builder', {
-            prompt: prompt,
+            prompt: safePrompt,
             schema_fields: schemaFields
         });
 
