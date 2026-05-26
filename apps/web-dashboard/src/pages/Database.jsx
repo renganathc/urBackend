@@ -156,6 +156,15 @@ export default function Database() {
     } catch { toast.error("Failed to delete document"); }
   };
 
+  const handleFiltersGenerated = (aiFilters, aiSort) => {
+      setQueryParams(prev => ({
+          ...prev,
+          page: 1,
+          filters: aiFilters,
+          sort: aiSort || prev.sort
+      }));
+  };
+
   /**
    * Generates an RLS-aware cURL snippet for the active collection.
    * Uses the secret key if RLS is disabled, or the publishable key with a JWT if RLS is enabled.
@@ -207,6 +216,7 @@ export default function Database() {
               onOpenSidebar={() => setIsSidebarOpen(true)}
               showDeleted={showDeleted}
               setShowDeleted={setShowDeleted}
+              onFiltersGenerated={handleFiltersGenerated}
             />
 
             <div className="db-content" style={{ flex: 1, overflow: 'hidden', position: 'relative', display: 'flex', flexDirection: 'column' }}>
