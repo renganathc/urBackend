@@ -6,28 +6,28 @@ description: What's new in urBackend — new features, improvements, and fixes f
 <Update label="2026-05-25" description="Updates from May 12 – May 25" tags={["Feature", "Improvement", "Fix"]}>
 ## New features
 
-**Soft Delete & Trash Cleanup Worker** — Adds API support for soft‑deleting records and a background worker that permanently removes items from the trash after a configurable retention period.
+**Soft Delete & Trash Cleanup Worker** — You can now soft-delete records through the API. A background worker permanently removes items from the trash after your configured retention period.
 
-**Mail Platform Expansion** — Expands the Mail API ecosystem with BYOK (Bring Your Own Key) support, Broadcast capabilities, and a comprehensive developer guide.
+**Mail Platform Expansion** — You can now use BYOK (Bring Your Own Key) with the Mail API, send Broadcasts, and follow a comprehensive developer guide to get started.
 
-**Login Lockout Protection** — Introduces a Redis-backed per-email login lockout system after 5 failed attempts, handling lockouts with a 423 status code and a retry countdown.
+**Login Lockout Protection** — You now get a Redis-backed per-email login lockout after 5 failed attempts. Locked logins return `423` with a retry countdown.
 
 ## Improvements
 
-**Timeline UI for Features Section** — Replaces the classic grid with a modern, scrollable timeline view for better visual navigation.
+**Timeline UI for Features Section** — You now navigate the features section through a modern, scrollable timeline view instead of the classic grid.
 
-**Landing Page UI/UX** — Refines layout and interaction cues on the landing page for a smoother first‑time visitor experience.
+**Landing Page UI/UX** — You get a smoother first-time experience thanks to refined layout and interaction cues on the landing page.
 
-**NoSQL Injection Sanitization** — Enhances API security by sanitizing root-level array payloads and recursively sanitizing nested MongoDB operators.
+**NoSQL Injection Sanitization** — You're protected by stronger API security that sanitizes root-level array payloads and recursively sanitizes nested MongoDB operators.
 
-**Automated Release Notes** — Integrates a unified CHANGELOG.md following the "Keep a Changelog" standard and automates weekly release notes via GitHub Actions.
+**Automated Release Notes** — You can now follow a unified `CHANGELOG.md` that adheres to the "Keep a Changelog" standard, with weekly release notes automated via GitHub Actions.
 
 ## Bug fixes
 
-- Handle 423 login lockout with retry countdown
+- Handle `423` login lockout with retry countdown
 - Address PR review feedback for AI Query Builder
-- Resolve remaining review issues from PR #124
-- Make database empty‑state cURL snippet RLS‑aware to prevent 403 errors
+- Resolve remaining review issues from PR `#124`
+- Make database empty‑state `cURL` snippet RLS‑aware to prevent `403` errors
 - Replace hardcoded sender domains with environment variables and fallbacks
 - Fix email parameter trimming and remove regex-based sender parsing
 - Sanitize root-level array payloads and nested operators for NoSQL security
