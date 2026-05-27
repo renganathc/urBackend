@@ -12,7 +12,8 @@ const {
     deleteAccountSchema,
     onlyEmailSchema,
     resetPasswordSchema,
-    verifyOtpSchema
+    verifyOtpSchema,
+    AppError
 } = require("@urbackend/common");
 const { emitEvent } = require('../utils/emitEvent');
 
@@ -87,20 +88,38 @@ const clearGithubStateCookie = (res) => {
     });
 };
 
+const OAUTH_FETCH_TIMEOUT_MS = 10000;
+
 const fetchJson = async (url, options, defaultMessage) => {
-    const response = await fetch(url, options);
-    const payload = await response.json().catch(() => null);
+    // Prevent OAuth requests from hanging forever
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), OAUTH_FETCH_TIMEOUT_MS);
 
-    if (!response.ok) {
-        const message =
-            payload?.error_description ||
-            payload?.error ||
-            payload?.message ||
-            defaultMessage;
-        throw new Error(message);
+    try {
+        const response = await fetch(url, {
+            ...(options || {}),
+            signal: controller.signal,
+        });
+        const payload = await response.json().catch(() => null);
+
+        if (!response.ok) {
+            const message =
+                payload?.error_description ||
+                payload?.error ||
+                payload?.message ||
+                defaultMessage;
+            throw new AppError(message, response.status || 502);
+        }
+
+        return payload;
+    } catch (err) {
+        if (err.name === 'AbortError') {
+            throw new AppError('OAuth request timed out.', 504);
+        }
+        throw err;
+    } finally {
+        clearTimeout(timeout);
     }
-
-    return payload;
 };
 
 const exchangeGithubCodeForToken = async ({ code, req }) => {
