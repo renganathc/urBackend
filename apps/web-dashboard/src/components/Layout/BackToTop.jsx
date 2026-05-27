@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
+
 function BackToTop() {
     const [isVisible, setIsVisible] = useState(false);
+
     useEffect(() => {
         const handleScroll = () => {
             if (window.scrollY > 300) {
@@ -9,24 +11,30 @@ function BackToTop() {
                 setIsVisible(false);
             }
         };
+
         window.addEventListener('scroll', handleScroll);
+
         return () => {
             window.removeEventListener('scroll', handleScroll);
         };
     }, []);
+
     const handleClick = () => {
         window.scrollTo({
             top: 0,
             behavior: 'smooth'
         });
     };
+
     if (!isVisible) {
         return null;
     }
+
     return (
         <button
             onClick={handleClick}
             title="Back to Top"
+            aria-label="Back to Top"
             style={{
                 position: 'fixed',
                 bottom: '2rem',
@@ -50,4 +58,5 @@ function BackToTop() {
         </button>
     );
 }
+
 export default BackToTop;
