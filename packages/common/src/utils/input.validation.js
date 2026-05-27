@@ -36,20 +36,35 @@ module.exports.signupSchema = z.object({
 });
 
 module.exports.changePasswordSchema = z.object({
-  currentPassword: z.string().min(1, "Current password is required"),
-  newPassword: z.string().min(6, "New password must be at least 6 characters"),
+  currentPassword: z
+    .string()
+    .min(1, "Current password is required")
+    .max(100, "Password is too long."),
+  newPassword: z
+    .string()
+    .min(6, "New password must be at least 6 characters")
+    .max(100, "Password is too long."),
 });
 
 module.exports.deleteAccountSchema = z.object({
-  password: z.string().min(1, "Password is required"),
+  password: z
+    .string()
+    .min(1, "Password is required")
+    .max(100, "Password is too long."),
 });
 
 module.exports.onlyEmailSchema = z.object({
-  email: z.string().email("Invalid email format"),
+  email: z
+    .string()
+    .email("Invalid email format")
+    .max(100, "Email is too long."),
 });
 
 module.exports.verifyOtpSchema = z.object({
-  email: z.string().email("Invalid email format"),
+  email: z
+    .string()
+    .email("Invalid email format")
+    .max(100, "Email is too long."),
   otp: z.string().length(6, "OTP must be 6 digits"),
 });
 
