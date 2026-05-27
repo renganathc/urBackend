@@ -54,7 +54,7 @@ module.exports.dbExportHandler = async (req, res, next) => {
         });
 
     } catch (err) {
-        console.error(`[Dashboard API] Error handling export request for project ${req.params.projectId}:`, err);
+        console.error("[Dashboard API] Error handling export request for project - ", req.params.projectId, ": ", err);
         return next(new AppError(500, err.message || "Failed to initiate database export."));
     }
 };
