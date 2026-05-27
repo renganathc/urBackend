@@ -12,9 +12,9 @@ const {
     deleteAccountSchema,
     onlyEmailSchema,
     resetPasswordSchema,
-    verifyOtpSchema
+    verifyOtpSchema,
+    AppError
 } = require("@urbackend/common");
-const AppError = require("@urbackend/common/src/utils/AppError");
 const { emitEvent } = require('../utils/emitEvent');
 
 const ACCESS_TOKEN_EXPIRES_IN = '15m';
