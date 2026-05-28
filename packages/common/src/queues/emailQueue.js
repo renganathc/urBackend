@@ -22,11 +22,14 @@ const worker = new Worker('email-queue', async (job) => {
         if (job.name === 'send-export-email') {
             const { email, downloadUrl, projectName } = job.data;
 
-            console.log(`[EmailWorker] Sending simple export email to ${email} for ${projectName}`);
-
-            await sendExportReadyEmail({ to:email, downloadUrl, projectName});
-            
-            console.log(`[EmailWorker] Export email successfully sent to ${email}`);
+            try {
+                console.log(`[EmailWorker] Sending simple export email to ${email} for ${projectName}`);
+                await sendExportReadyEmail({ to: email, downloadUrl, projectName });
+                console.log(`[EmailWorker] Export email successfully sent to ${email}`);
+            } catch (error) {
+                console.error(`[EmailWorker] Failed to send export email to ${email}:`, error);
+                throw error;
+            }
         }
 
     }, {
