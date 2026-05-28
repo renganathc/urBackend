@@ -22,7 +22,7 @@ const { getConnection } = require("@urbackend/common");
 const { getCompiledModel } = require("@urbackend/common");
 const { QueryEngine } = require("@urbackend/common");
 const { storageRegistry } = require("@urbackend/common");
-const { AppError, dispatchWebhooks, enqueueCollectionCleanup, syncCollectionCleanup } = require("@urbackend/common");
+const { AppError, webhookQueue, enqueueCollectionCleanup, syncCollectionCleanup } = require("@urbackend/common");
 const { resolveEffectivePlan } = require("@urbackend/common");
 const {
   deleteProjectByApiKeyCache,
@@ -1055,14 +1055,12 @@ module.exports.recoverRow = async (req, res, next) => {
       return next(new AppError(404, "Document not found or recovery window expired (30 days)."));
     }
 
-    dispatchWebhooks({
+    await webhookQueue.add('trigger-webhook', {
       projectId: project._id,
+      event: 'document.recovered',
       collection: collectionName,
-      action: "recover",
-      document: result,
-      documentId: id,
-      options: { bypassLimit: true }
-    });
+      payload: result
+    }, { removeOnComplete: true });
 
     try {
       await syncCollectionCleanup(projectId, collectionName);

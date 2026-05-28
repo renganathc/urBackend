@@ -4,7 +4,7 @@ const { Project } = require("@urbackend/common");
 const { getConnection } = require("@urbackend/common");
 const { getCompiledModel } = require("@urbackend/common");
 const { QueryEngine } = require("@urbackend/common");
-const { validateData, validateUpdateData, aggregateSchema, dispatchWebhooks } = require("@urbackend/common");
+const { validateData, validateUpdateData, aggregateSchema, webhookQueue } = require("@urbackend/common");
 const { performance } = require('perf_hooks');
 const { z } = require("zod");
 const { 
@@ -83,13 +83,12 @@ module.exports.insertData = async (req, res) => {
       );
     }
 
-    dispatchWebhooks({
+    await webhookQueue.add('trigger-webhook', {
       projectId: project._id,
+      event: 'document.inserted',
       collection: collectionName,
-      action: 'insert',
-      document: result.toObject ? result.toObject() : result,
-      documentId: result._id,
-    });
+      payload: result.toObject ? result.toObject() : result
+    }, { removeOnComplete: true });
 
     if (isDebug) console.log(`[DEBUG] insert data took ${(performance.now() - start).toFixed(2)}ms`);
     res.status(201).json(result);
@@ -536,13 +535,12 @@ module.exports.updateSingleData = async (req, res) => {
 
     if (!result) return res.status(404).json({ error: "Document not found." });
 
-    dispatchWebhooks({
+    await webhookQueue.add('trigger-webhook', {
       projectId: project._id,
+      event: 'document.updated',
       collection: collectionName,
-      action: 'update',
-      document: result,
-      documentId: result._id,
-    });
+      payload: result
+    }, { removeOnComplete: true });
 
     res.json({ message: "Updated", data: result });
   } catch (err) {
@@ -610,13 +608,12 @@ module.exports.deleteSingleDoc = async (req, res) => {
       console.error("Failed to enqueue trash cleanup job", { projectId: String(project._id), collectionName,  err });
     }
 
-    dispatchWebhooks({
+    await webhookQueue.add('trigger-webhook', {
       projectId: project._id,
+      event: 'document.deleted',
       collection: collectionName,
-      action: 'delete',
-      document: result,
-      documentId: id,
-    });
+      payload: result
+    }, { removeOnComplete: true });
 
     res.json({ success: true, data: { id }, message: "Document moved to trash" });
   } catch (err) {
@@ -679,14 +676,12 @@ module.exports.recoverSingleDoc = async (req, res, next) => {
       return next(new AppError(404, "Document not found or recovery window expired (30 days)."));
     }
 
-    dispatchWebhooks({
+    await webhookQueue.add('trigger-webhook', {
       projectId: project._id,
+      event: 'document.recovered',
       collection: collectionName,
-      action: 'recover',
-      document: result,
-      documentId: id,
-      options: {}
-    });
+      payload: result
+    }, { removeOnComplete: true });
 
     try {
       await syncCollectionCleanup(project._id, collectionName);

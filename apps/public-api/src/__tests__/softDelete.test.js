@@ -18,7 +18,7 @@ jest.mock('@urbackend/common', () => {
         Project: {},
         getConnection: jest.fn().mockResolvedValue({}),
         getCompiledModel: jest.fn(() => mockModel),
-        dispatchWebhooks: jest.fn(),
+        webhookQueue: { add: jest.fn() },
         QueryEngine: jest.fn(),
         validateData: jest.fn(),
         validateUpdateData: jest.fn(),
@@ -138,12 +138,17 @@ describe('Soft Delete in data.controller', () => {
             message: "Document recovered from trash" 
         });
 
-        const { dispatchWebhooks, syncCollectionCleanup } = require('@urbackend/common');
-        expect(dispatchWebhooks).toHaveBeenCalledWith(expect.objectContaining({
-            action: 'recover',
-            document: restoredDoc,
-            projectId: 'proj_1'
-        }));
+        const { webhookQueue, syncCollectionCleanup } = require('@urbackend/common');
+        expect(webhookQueue.add).toHaveBeenCalledWith(
+            'trigger-webhook',
+            expect.objectContaining({
+                event: 'document.recovered',
+                payload: restoredDoc,
+                projectId: 'proj_1',
+                collection: 'posts'
+            }),
+            { removeOnComplete: true }
+        );
         expect(syncCollectionCleanup).toHaveBeenCalledWith('proj_1', 'posts');
     });
 
